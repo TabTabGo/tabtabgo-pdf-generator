@@ -97,7 +97,7 @@ export class PdfGeneratorService {
     }
 
     // options validation (optional)
-    if (payload.options && typeof payload.options !== 'object') {
+    if (payload.options && (typeof payload.options !== 'object' || Array.isArray(payload.options) || payload.options === null)) {
       errors.push('options must be an object');
     }
 

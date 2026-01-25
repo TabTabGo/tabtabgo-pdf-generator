@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { config } from '../config/index.js';
 
 /**
@@ -32,17 +33,19 @@ export const apiKeyAuth = (req, res, next) => {
 
 /**
  * Constant-time string comparison to prevent timing attacks
- * This is the latest security best practice for API key validation
+ * Uses Node.js's built-in crypto.timingSafeEqual which is designed for this purpose
  */
 function constantTimeCompare(a, b) {
+  // timingSafeEqual requires buffers of the same length
   if (a.length !== b.length) {
     return false;
   }
 
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  try {
+    const bufferA = Buffer.from(a, 'utf8');
+    const bufferB = Buffer.from(b, 'utf8');
+    return crypto.timingSafeEqual(bufferA, bufferB);
+  } catch (error) {
+    return false;
   }
-
-  return result === 0;
 }

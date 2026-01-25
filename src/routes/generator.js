@@ -43,7 +43,11 @@ router.post('/pdf', async (req, res) => {
     // Send PDF as stream
     res.send(pdfBuffer);
   } catch (error) {
-    console.error('PDF generation error:', error);
+    // Log sanitized error details (avoid exposing sensitive information)
+    console.error('PDF generation error:', {
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
     
     res.status(500).json({
       error: 'Internal server error',
