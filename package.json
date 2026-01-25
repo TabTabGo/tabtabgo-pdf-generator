@@ -1,0 +1,20 @@
+{
+  "name": "tabtabgo-pdf-generator",
+  "version": "1.0.0",
+  "description": "nodejs service to generate pdf",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "puppeteer": "^24.36.0"
+  }
+}
