@@ -38,6 +38,22 @@ PORT=3000
 API_KEYS=your-secret-key-1,your-secret-key-2,your-secret-key-3
 ```
 
+## Deployment
+
+### Windows Server with IIS
+
+For detailed instructions on deploying this service on Windows Server using IIS, see:
+
+📖 **[Windows Server IIS Deployment Guide](DEPLOYMENT_IIS.md)**
+
+The guide includes:
+- Step-by-step installation instructions
+- IIS configuration with iisnode
+- SSL/HTTPS setup
+- Troubleshooting tips
+- Performance optimization
+- Security best practices
+
 ## Usage
 
 ### Start the server
