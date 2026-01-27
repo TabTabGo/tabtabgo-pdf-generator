@@ -1,0 +1,15 @@
+services:
+  pdf-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - API_KEYS=${API_KEYS:-default-api-key-please-change}
+    restart: unless-stopped
+    # Optional: Mount a volume for persistent logs
+    # volumes:
+    #   - ./logs:/app/logs

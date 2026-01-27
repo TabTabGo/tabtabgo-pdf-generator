@@ -16,6 +16,40 @@ A Node.js service that converts HTML to PDF using Puppeteer with API key authent
 
 ## Installation
 
+### Option 1: Docker (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/TabTabGo/tabtabgo-pdf-generator.git
+cd tabtabgo-pdf-generator
+```
+
+2. Build and run with Docker Compose:
+```bash
+# Set your API keys (or use default for testing)
+export API_KEYS=your-secret-key-1,your-secret-key-2
+
+# Start the service
+docker-compose up -d
+```
+
+3. Or build and run with Docker directly:
+```bash
+# Build the image
+docker build -t tabtabgo-pdf-generator .
+
+# Run the container
+docker run -d \
+  -p 3000:3000 \
+  -e API_KEYS=your-secret-key-1,your-secret-key-2 \
+  --name pdf-generator \
+  tabtabgo-pdf-generator
+```
+
+The service will be available at `http://localhost:3000`.
+
+### Option 2: Local Installation
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/TabTabGo/tabtabgo-pdf-generator.git
@@ -42,6 +76,19 @@ API_KEYS=your-secret-key-1,your-secret-key-2,your-secret-key-3
 
 ### Start the server
 
+**With Docker:**
+```bash
+# Start
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+**Without Docker:**
 ```bash
 # Production
 npm start
@@ -195,9 +242,58 @@ tabtabgo-pdf-generator/
 │   ├── services/       # Business logic
 │   └── index.js        # Server entry point
 ├── .env.example        # Example environment variables
+├── Dockerfile          # Docker image definition
+├── docker-compose.yml  # Docker Compose configuration
 ├── package.json
 └── README.md
 ```
+
+## Deployment
+
+### Docker Deployment
+
+The application is containerized and ready for deployment to any Docker-compatible platform.
+
+#### Building for Production
+
+```bash
+# Build the Docker image
+docker build -t tabtabgo-pdf-generator:latest .
+
+# Tag for your registry (optional)
+docker tag tabtabgo-pdf-generator:latest your-registry/tabtabgo-pdf-generator:latest
+
+# Push to registry (optional)
+docker push your-registry/tabtabgo-pdf-generator:latest
+```
+
+#### Cloud Deployment
+
+**AWS ECS/Fargate:**
+```bash
+# Authenticate with ECR
+aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin your-account.dkr.ecr.your-region.amazonaws.com
+
+# Build and push
+docker build -t your-account.dkr.ecr.your-region.amazonaws.com/pdf-generator:latest .
+docker push your-account.dkr.ecr.your-region.amazonaws.com/pdf-generator:latest
+```
+
+**Google Cloud Run:**
+```bash
+# Build and deploy
+gcloud builds submit --tag gcr.io/your-project/pdf-generator
+gcloud run deploy pdf-generator --image gcr.io/your-project/pdf-generator --platform managed
+```
+
+**Azure Container Instances:**
+```bash
+# Create container registry and push
+az acr build --registry your-registry --image pdf-generator:latest .
+az container create --resource-group your-rg --name pdf-generator --image your-registry.azurecr.io/pdf-generator:latest
+```
+
+**Important:** Always set secure API keys via environment variables when deploying to production.
 
 ## License
 
