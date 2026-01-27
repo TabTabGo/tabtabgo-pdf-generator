@@ -2,8 +2,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const config = {
-  port: process.env.PORT || 3000,
+interface Config {
+  port: number;
+  apiKeys: string[];
+  nodeEnv: string;
+  puppeteerExecutablePath?: string;
+}
+
+export const config: Config = {
+  port: parseInt(process.env.PORT || '3000', 10),
   apiKeys: process.env.API_KEYS ? process.env.API_KEYS.split(',').map(key => key.trim()) : [],
   nodeEnv: process.env.NODE_ENV || 'development',
   puppeteerExecutablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,

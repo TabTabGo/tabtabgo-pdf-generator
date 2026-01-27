@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { config } from './config/index.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import generatorRoutes from './routes/generator.js';
@@ -10,7 +10,7 @@ app.use(express.json({ limit: '10mb' })); // Support larger HTML content
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint (no auth required)
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'tabtabgo-pdf-generator',
@@ -19,7 +19,7 @@ app.get('/health', (req, res) => {
 });
 
 // API documentation endpoint (no auth required)
-app.get('/', (req, res) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({
     service: 'TabTabGo PDF Generator Service',
     version: '1.0.0',
@@ -60,7 +60,7 @@ app.get('/', (req, res) => {
 app.use('/documents/generator', apiKeyAuth, generatorRoutes);
 
 // 404 handler
-app.use((req, res) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     error: 'Not Found',
     message: `Route ${req.method} ${req.path} not found`,
@@ -68,7 +68,7 @@ app.use((req, res) => {
 });
 
 // Global error handler
-app.use((err, req, res, next) => {
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err);
   
   res.status(err.status || 500).json({
