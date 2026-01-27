@@ -77,12 +77,13 @@ iisnode enables hosting Node.js applications in IIS.
 
 1. **Download iisnode**
    - Visit [https://github.com/Azure/iisnode/releases](https://github.com/Azure/iisnode/releases)
-   - Download the latest version for x64 (e.g., `iisnode-full-v0.2.26-x64.msi`)
+   - Download the latest stable version for x64
+   - At the time of writing, the latest version is v0.2.26, but check for newer versions
 
 2. **Install iisnode**
    ```powershell
-   # Run the installer
-   # Or use command line:
+   # Run the downloaded installer
+   # Or use command line (replace with actual version number):
    msiexec /i iisnode-full-v0.2.26-x64.msi /qn
    ```
 
@@ -122,13 +123,21 @@ The URL Rewrite module is required for routing requests to Node.js.
 
 2. **Deploy Application Files**
 
-   **Option A: Clone from Git**
+   **Option A: Clone from Git (Development/Testing)**
    ```powershell
    git clone https://github.com/TabTabGo/tabtabgo-pdf-generator.git .
    ```
 
-   **Option B: Manual Copy**
-   - Copy all application files to `C:\inetpub\wwwroot\tabtabgo-pdf-generator`
+   **Option B: Use Release Tag (Recommended for Production)**
+   ```powershell
+   # Clone and checkout a specific release version
+   git clone https://github.com/TabTabGo/tabtabgo-pdf-generator.git .
+   git checkout tags/v1.0.0  # Replace with desired release version
+   ```
+
+   **Option C: Manual Copy**
+   - Download the latest release from GitHub
+   - Extract and copy all application files to `C:\inetpub\wwwroot\tabtabgo-pdf-generator`
    - Ensure you copy: `src/`, `package.json`, `package-lock.json`
 
 3. **Install Dependencies**
@@ -387,12 +396,22 @@ For production deployments, always use HTTPS.
 
 2. **Enable Detailed Errors**
    
-   In `web.config`, temporarily set:
+   In `web.config`, temporarily set for troubleshooting:
    ```xml
    <iisnode loggingEnabled="true" debuggingEnabled="true" />
    ```
    
    Check logs in: `C:\inetpub\wwwroot\tabtabgo-pdf-generator\iisnode`
+   
+   **IMPORTANT**: After troubleshooting, set `loggingEnabled="false"` in production to:
+   - Prevent sensitive information exposure in logs
+   - Improve performance
+   - Reduce disk space usage
+   
+   If logging is needed in production, ensure log files are:
+   - Not accessible via HTTP (use web.config to block access)
+   - Regularly rotated and archived
+   - Properly secured with appropriate file permissions
 
 3. **Verify Node.js Path**
    ```powershell
