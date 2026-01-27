@@ -10,7 +10,9 @@ COPY --chown=pptruser:pptruser package.json ./
 # Install app dependencies without lockfile to avoid npm ci issues
 # Skip Puppeteer's Chromium download as the base image already has it
 # NOTE: strict-ssl is disabled as a workaround for build environment certificate issues
-# In production environments with proper certificates, remove the npm config line
+# SECURITY: In production builds with proper CA certificates, remove this line:
+#   RUN npm install --omit=dev --ignore-scripts --no-package-lock
+# For now, this is required for compatibility with certain build environments
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm config set strict-ssl false && \
     npm install --omit=dev --ignore-scripts --no-package-lock
@@ -29,7 +31,12 @@ ENV NODE_ENV=production
 
 # Create entrypoint script to set Chrome path dynamically
 RUN echo '#!/bin/sh' > /home/pptruser/entrypoint.sh && \
-    echo 'export PUPPETEER_EXECUTABLE_PATH=$(find /home/pptruser/.cache/puppeteer/chrome -name chrome -type f | head -n 1)' >> /home/pptruser/entrypoint.sh && \
+    echo 'CHROME_PATH=$(find /home/pptruser/.cache/puppeteer/chrome -name chrome -type f | head -n 1)' >> /home/pptruser/entrypoint.sh && \
+    echo 'if [ -z "$CHROME_PATH" ]; then' >> /home/pptruser/entrypoint.sh && \
+    echo '  echo "ERROR: Chrome executable not found in Puppeteer cache"' >> /home/pptruser/entrypoint.sh && \
+    echo '  exit 1' >> /home/pptruser/entrypoint.sh && \
+    echo 'fi' >> /home/pptruser/entrypoint.sh && \
+    echo 'export PUPPETEER_EXECUTABLE_PATH="$CHROME_PATH"' >> /home/pptruser/entrypoint.sh && \
     echo 'exec "$@"' >> /home/pptruser/entrypoint.sh && \
     chmod +x /home/pptruser/entrypoint.sh
 
