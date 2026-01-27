@@ -9,7 +9,8 @@ COPY --chown=pptruser:pptruser package.json ./
 
 # Install app dependencies without lockfile to avoid npm ci issues
 # Skip Puppeteer's Chromium download as the base image already has it
-# Disable strict SSL to work around certificate issues in build environment
+# NOTE: strict-ssl is disabled as a workaround for build environment certificate issues
+# In production environments with proper certificates, remove the npm config line
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN npm config set strict-ssl false && \
     npm install --omit=dev --ignore-scripts --no-package-lock
@@ -22,8 +23,17 @@ EXPOSE 3000
 
 # Set environment variables
 ENV NODE_ENV=production
-# Point to Chrome installed in the base image
-ENV PUPPETEER_EXECUTABLE_PATH=/home/pptruser/.cache/puppeteer/chrome/linux-131.0.6778.85/chrome-linux64/chrome
+# Find and use Chrome installed in the base image (dynamically locate latest version)
+# The base image installs Chrome in /home/pptruser/.cache/puppeteer/chrome/
+# We'll set this at runtime via entrypoint to handle version changes gracefully
+
+# Create entrypoint script to set Chrome path dynamically
+RUN echo '#!/bin/sh' > /home/pptruser/entrypoint.sh && \
+    echo 'export PUPPETEER_EXECUTABLE_PATH=$(find /home/pptruser/.cache/puppeteer/chrome -name chrome -type f | head -n 1)' >> /home/pptruser/entrypoint.sh && \
+    echo 'exec "$@"' >> /home/pptruser/entrypoint.sh && \
+    chmod +x /home/pptruser/entrypoint.sh
+
+ENTRYPOINT ["/home/pptruser/entrypoint.sh"]
 
 # The base image already sets up a non-root user (pptruser)
 # Start the application

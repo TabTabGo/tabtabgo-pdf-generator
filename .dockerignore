@@ -13,11 +13,6 @@ yarn-error.log*
 .git
 .gitignore
 
-# Documentation
-README.md
-EXAMPLES.md
-LICENSE
-
 # IDE and editor files
 .vscode
 .idea
