@@ -1,5 +1,5 @@
 import { config } from '../config/index.js';
-import type { Browser, PDFOptions, LaunchOptions } from 'puppeteer';
+import type { Browser, PDFOptions, LaunchOptions, PuppeteerNode } from 'puppeteer';
 
 interface ValidationResult {
   valid: boolean;
@@ -17,9 +17,9 @@ interface Payload {
  * This allows for better testing and control over the Puppeteer library
  */
 export class PdfGeneratorService {
-  private puppeteer: any;
+  private puppeteer: PuppeteerNode | null;
 
-  constructor(puppeteerInstance: any = null) {
+  constructor(puppeteerInstance: PuppeteerNode | null = null) {
     // Dependency injection for Puppeteer library
     this.puppeteer = puppeteerInstance;
   }
@@ -42,6 +42,10 @@ export class PdfGeneratorService {
    */
   async generatePdf(content: string, options: PDFOptions = {}): Promise<Buffer> {
     await this.initializePuppeteer();
+
+    if (!this.puppeteer) {
+      throw new Error('Failed to initialize Puppeteer');
+    }
 
     let browser: Browser | null = null;
 
@@ -129,6 +133,6 @@ export class PdfGeneratorService {
 }
 
 // Create a singleton instance with dependency injection support
-export const createPdfGeneratorService = (puppeteerInstance: any = null): PdfGeneratorService => {
+export const createPdfGeneratorService = (puppeteerInstance: PuppeteerNode | null = null): PdfGeneratorService => {
   return new PdfGeneratorService(puppeteerInstance);
 };
