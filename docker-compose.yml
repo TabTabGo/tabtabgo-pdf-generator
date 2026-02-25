@@ -1,0 +1,21 @@
+services:
+  pdf-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Uncomment if building in environment with certificate issues:
+      # args:
+      #   NPM_CONFIG_STRICT_SSL: "false"
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      # IMPORTANT: Set API_KEYS environment variable before running
+      # Example: export API_KEYS=your-secret-key-1,your-secret-key-2
+      # Or use: API_KEYS=your-keys docker-compose up
+      - API_KEYS=${API_KEYS}
+    restart: unless-stopped
+    # Optional: Mount a volume for persistent logs
+    # volumes:
+    #   - ./logs:/home/pptruser/app/logs
