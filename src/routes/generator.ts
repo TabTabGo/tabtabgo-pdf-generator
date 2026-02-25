@@ -1,10 +1,17 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { createPdfGeneratorService } from '../services/pdfGenerator.js';
+import type { PDFOptions } from 'puppeteer';
 
 const router = express.Router();
 
 // Create PDF generator service instance with dependency injection
 const pdfGeneratorService = createPdfGeneratorService();
+
+interface PdfGenerationRequest {
+  contentType: string;
+  content: string;
+  options?: PDFOptions;
+}
 
 /**
  * POST /documents/generator/pdf
@@ -17,7 +24,7 @@ const pdfGeneratorService = createPdfGeneratorService();
  *   options: { format: "A4", ... } // optional
  * }
  */
-router.post('/pdf', async (req, res) => {
+router.post('/pdf', async (req: Request<{}, {}, PdfGenerationRequest>, res: Response) => {
   try {
     const { contentType, content, options } = req.body;
 
@@ -25,11 +32,12 @@ router.post('/pdf', async (req, res) => {
     const validation = pdfGeneratorService.validatePayload({ contentType, content, options });
     
     if (!validation.valid) {
-      return res.status(400).json({
+      res.status(400).json({
         error: 'Invalid request',
         message: 'Request validation failed',
         details: validation.errors,
       });
+      return;
     }
 
     // Generate PDF
@@ -45,14 +53,14 @@ router.post('/pdf', async (req, res) => {
   } catch (error) {
     // Log sanitized error details (avoid exposing sensitive information)
     console.error('PDF generation error:', {
-      message: error.message,
+      message: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString(),
     });
     
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to generate PDF',
-      details: error.message,
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });

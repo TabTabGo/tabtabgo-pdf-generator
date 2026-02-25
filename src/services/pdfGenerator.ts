@@ -1,11 +1,25 @@
 import { config } from '../config/index.js';
+import type { Browser, PDFOptions, LaunchOptions, PuppeteerNode } from 'puppeteer';
+
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+}
+
+interface Payload {
+  contentType?: string;
+  content?: string;
+  options?: PDFOptions;
+}
 
 /**
  * PDF Generator Service using dependency injection pattern
  * This allows for better testing and control over the Puppeteer library
  */
 export class PdfGeneratorService {
-  constructor(puppeteerInstance = null) {
+  private puppeteer: PuppeteerNode | null;
+
+  constructor(puppeteerInstance: PuppeteerNode | null = null) {
     // Dependency injection for Puppeteer library
     this.puppeteer = puppeteerInstance;
   }
@@ -13,7 +27,7 @@ export class PdfGeneratorService {
   /**
    * Initialize Puppeteer if not already injected
    */
-  async initializePuppeteer() {
+  async initializePuppeteer(): Promise<void> {
     if (!this.puppeteer) {
       const puppeteer = await import('puppeteer');
       this.puppeteer = puppeteer.default;
@@ -22,18 +36,22 @@ export class PdfGeneratorService {
 
   /**
    * Generate PDF from HTML content
-   * @param {string} content - HTML content as string
-   * @param {Object} options - Puppeteer PDF options
-   * @returns {Promise<Buffer>} - PDF buffer
+   * @param content - HTML content as string
+   * @param options - Puppeteer PDF options
+   * @returns PDF buffer
    */
-  async generatePdf(content, options = {}) {
+  async generatePdf(content: string, options: PDFOptions = {}): Promise<Buffer> {
     await this.initializePuppeteer();
 
-    let browser = null;
+    if (!this.puppeteer) {
+      throw new Error('Failed to initialize Puppeteer');
+    }
+
+    let browser: Browser | null = null;
 
     try {
       // Launch browser with custom executable path if configured
-      const launchOptions = {
+      const launchOptions: LaunchOptions = {
         headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       };
@@ -43,6 +61,11 @@ export class PdfGeneratorService {
       }
 
       browser = await this.puppeteer.launch(launchOptions);
+      
+      if (!browser) {
+        throw new Error('Failed to launch browser');
+      }
+      
       const page = await browser.newPage();
 
       // Set content and wait for any network requests to complete
@@ -51,7 +74,7 @@ export class PdfGeneratorService {
       });
 
       // Default PDF options with user overrides
-      const pdfOptions = {
+      const pdfOptions: PDFOptions = {
         format: 'A4',
         printBackground: true,
         ...options,
@@ -60,9 +83,10 @@ export class PdfGeneratorService {
       // Generate PDF buffer
       const pdfBuffer = await page.pdf(pdfOptions);
 
-      return pdfBuffer;
+      return Buffer.from(pdfBuffer);
     } catch (error) {
-      throw new Error(`PDF generation failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`PDF generation failed: ${errorMessage}`);
     } finally {
       if (browser) {
         await browser.close();
@@ -72,11 +96,11 @@ export class PdfGeneratorService {
 
   /**
    * Validate PDF generation request payload
-   * @param {Object} payload - Request payload
-   * @returns {Object} - Validation result
+   * @param payload - Request payload
+   * @returns Validation result
    */
-  validatePayload(payload) {
-    const errors = [];
+  validatePayload(payload: Payload): ValidationResult {
+    const errors: string[] = [];
 
     if (!payload) {
       return { valid: false, errors: ['Request payload is required'] };
@@ -109,6 +133,6 @@ export class PdfGeneratorService {
 }
 
 // Create a singleton instance with dependency injection support
-export const createPdfGeneratorService = (puppeteerInstance = null) => {
+export const createPdfGeneratorService = (puppeteerInstance: PuppeteerNode | null = null): PdfGeneratorService => {
   return new PdfGeneratorService(puppeteerInstance);
 };
