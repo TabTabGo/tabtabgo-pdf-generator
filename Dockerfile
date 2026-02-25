@@ -4,18 +4,16 @@ FROM ghcr.io/puppeteer/puppeteer:23.9.0
 # Set working directory
 WORKDIR /home/pptruser/app
 
-# Copy package.json only first
-COPY --chown=pptruser:pptruser package.json ./
+# Copy package files
+COPY --chown=pptruser:pptruser package.json package-lock.json ./
 
-# Install app dependencies without lockfile to avoid npm ci issues
+# Install app dependencies using lockfile for reproducibility
 # Skip Puppeteer's Chromium download as the base image already has it
-# NOTE: strict-ssl is disabled as a workaround for build environment certificate issues
-# SECURITY: In production builds with proper CA certificates, remove this line:
-#   RUN npm install --omit=dev --ignore-scripts --no-package-lock
-# For now, this is required for compatibility with certain build environments
+# Skip install scripts to avoid Chromium download
+# Use build arg to allow SSL configuration without baking it into the image
+ARG NPM_CONFIG_STRICT_SSL=true
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-RUN npm config set strict-ssl false && \
-    npm install --omit=dev --ignore-scripts --no-package-lock
+RUN npm ci --omit=dev --ignore-scripts
 
 # Copy application source
 COPY --chown=pptruser:pptruser src ./src

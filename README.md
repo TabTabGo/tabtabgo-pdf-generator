@@ -36,6 +36,8 @@ docker-compose up -d
 3. Or build and run with Docker directly:
 ```bash
 # Build the image
+# Note: If building in an environment with certificate issues, use:
+# docker build --build-arg NPM_CONFIG_STRICT_SSL=false -t tabtabgo-pdf-generator .
 docker build -t tabtabgo-pdf-generator .
 
 # Run the container
