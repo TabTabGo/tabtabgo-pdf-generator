@@ -5,18 +5,21 @@ FROM ghcr.io/puppeteer/puppeteer:23.9.0
 WORKDIR /home/pptruser/app
 
 # Copy package files
-COPY --chown=pptruser:pptruser package.json package-lock.json ./
+COPY --chown=pptruser:pptruser package.json package-lock.json tsconfig.json ./
 
-# Install app dependencies using lockfile for reproducibility
+# Install all dependencies (including devDependencies needed for build)
 # Skip Puppeteer's Chromium download as the base image already has it
-# Skip install scripts to avoid Chromium download
 # Use build arg to allow SSL configuration without baking it into the image
 ARG NPM_CONFIG_STRICT_SSL=true
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm ci --ignore-scripts
 
-# Copy application source
+# Copy application source and build TypeScript
 COPY --chown=pptruser:pptruser src ./src
+RUN npm run build
+
+# Remove devDependencies after build
+RUN npm prune --omit=dev
 
 # Expose the application port
 EXPOSE 3000
@@ -42,4 +45,4 @@ ENTRYPOINT ["/home/pptruser/entrypoint.sh"]
 
 # The base image already sets up a non-root user (pptruser)
 # Start the application
-CMD ["node", "src/index.js"]
+CMD ["node", "dist/index.js"]
