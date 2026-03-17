@@ -28,16 +28,26 @@ jobs:
           tenant-id: ${{ secrets.SERVICES_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.SERVICES_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and push container image to registry
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.SERVICES_REGISTRY_URL }}
+          username: ${{ secrets.SERVICES_REGISTRY_USERNAME }}
+          password: ${{ secrets.SERVICES_REGISTRY_PASSWORD }}
+
+      - name: Build and push container image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.SERVICES_REGISTRY_URL }}/services:${{ github.sha }}
+
+      - name: Deploy to Azure Container App
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: ${{ github.workspace }}
-          dockerfilePath: ./Dockerfile
-          registryUrl: ${{ secrets.SERVICES_REGISTRY_URL }}
-          registryUsername: ${{ secrets.SERVICES_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.SERVICES_REGISTRY_PASSWORD }}
           containerAppName: services
           resourceGroup: tabs
-          imageToBuild: ${{ secrets.SERVICES_REGISTRY_URL }}/services:${{ github.sha }}
+          imageToDeploy: ${{ secrets.SERVICES_REGISTRY_URL }}/services:${{ github.sha }}
 
 
