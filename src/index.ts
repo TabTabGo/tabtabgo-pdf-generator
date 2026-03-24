@@ -25,14 +25,14 @@ app.get('/', (_req: Request, res: Response) => {
     version: '1.0.0',
     endpoints: {
       health: 'GET /health',
-      generatePdf: 'POST /documents/generator/pdf',
+      generatePdf: 'POST /documents/pdf',
     },
     authentication: {
       type: 'API Key',
       headers: ['x-api-key', 'Authorization (Bearer token)'],
     },
     usage: {
-      endpoint: '/documents/generator/pdf',
+      endpoint: '/documents/pdf',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Apply API key authentication to protected routes
-app.use('/documents/generator', apiKeyAuth, generatorRoutes);
+app.use('/documents', apiKeyAuth, generatorRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

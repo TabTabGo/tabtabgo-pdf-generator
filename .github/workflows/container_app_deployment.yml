@@ -41,13 +41,13 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.SERVICES_REGISTRY_URL }}/services:${{ github.sha }}
+          tags: ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ github.sha }}
 
       - name: Deploy to Azure Container App
         uses: azure/container-apps-deploy-action@v2
         with:
-          containerAppName: services
+          containerAppName: ca-generator
           resourceGroup: tabs
-          imageToDeploy: ${{ secrets.SERVICES_REGISTRY_URL }}/services:${{ github.sha }}
-
+          imageToDeploy: ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ github.sha }}
+          
 

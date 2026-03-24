@@ -14,7 +14,7 @@ interface PdfGenerationRequest {
 }
 
 /**
- * POST /documents/generator/pdf
+ * POST /documents/pdf
  * Generate PDF from HTML content
  * 
  * Request body:
