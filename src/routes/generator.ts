@@ -1,11 +1,14 @@
 import express, { Request, Response } from 'express';
 import { createPdfGeneratorService } from '../services/pdfGenerator.js';
+import { createWordConverterService } from '../services/wordConverter.js';
 import type { PDFOptions } from 'puppeteer';
+import type { WordContentType } from '../services/wordConverter.js';
 
 const router = express.Router();
 
-// Create PDF generator service instance with dependency injection
+// Create service instances with dependency injection
 const pdfGeneratorService = createPdfGeneratorService();
+const wordConverterService = createWordConverterService();
 
 interface PdfGenerationRequest {
   contentType: string;
@@ -13,24 +16,26 @@ interface PdfGenerationRequest {
   options?: PDFOptions;
 }
 
+const wordContentTypes: WordContentType[] = ['docx', 'word-xml'];
+
 /**
  * POST /documents/pdf
- * Generate PDF from HTML content
- * 
+ * Generate PDF from HTML, DOCX, or Word XML content
+ *
  * Request body:
  * {
- *   contentType: "html",
- *   content: "<html>...</html>",
+ *   contentType: "html" | "docx" | "word-xml",
+ *   content: "<html>...</html>" | "<base64-encoded-docx>" | "<word-xml-string>",
  *   options: { format: "A4", ... } // optional
  * }
  */
-router.post('/pdf', async (req: Request<{}, {}, PdfGenerationRequest>, res: Response) => {
+router.post('/pdf', async (req: Request<object, object, PdfGenerationRequest>, res: Response) => {
   try {
     const { contentType, content, options } = req.body;
 
     // Validate payload
     const validation = pdfGeneratorService.validatePayload({ contentType, content, options });
-    
+
     if (!validation.valid) {
       res.status(400).json({
         error: 'Invalid request',
@@ -40,8 +45,19 @@ router.post('/pdf', async (req: Request<{}, {}, PdfGenerationRequest>, res: Resp
       return;
     }
 
+    // Convert Word documents to HTML before generating PDF
+    let htmlContent = content;
+    const normalizedContentType = contentType.toLowerCase();
+    if (wordContentTypes.includes(normalizedContentType as WordContentType)) {
+      const conversionResult = await wordConverterService.convertToHtml(
+        content,
+        normalizedContentType as WordContentType,
+      );
+      htmlContent = conversionResult.html;
+    }
+
     // Generate PDF
-    const pdfBuffer = await pdfGeneratorService.generatePdf(content, options || {});
+    const pdfBuffer = await pdfGeneratorService.generatePdf(htmlContent, options || {});
 
     // Set headers for PDF response
     res.setHeader('Content-Type', 'application/pdf');
