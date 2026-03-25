@@ -107,10 +107,11 @@ export class PdfGeneratorService {
     }
 
     // contentType validation
+    const supportedContentTypes = ['html', 'docx', 'word-xml'];
     if (!payload.contentType) {
       errors.push('contentType is required');
-    } else if (payload.contentType.toLowerCase() !== 'html') {
-      errors.push('contentType must be "html"');
+    } else if (!supportedContentTypes.includes(payload.contentType.toLowerCase())) {
+      errors.push(`contentType must be one of: ${supportedContentTypes.join(', ')}`);
     }
 
     // content validation

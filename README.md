@@ -5,7 +5,9 @@ A Node.js service that converts HTML to PDF using Puppeteer with API key authent
 ## Features
 
 - ✅ Convert HTML to PDF using Puppeteer
-- ✅ RESTful API with `/documents/generator/pdf` endpoint
+- ✅ Convert Microsoft Word documents (DOCX) to PDF
+- ✅ Convert Word XML documents to PDF
+- ✅ RESTful API with `/documents/pdf` endpoint
 - ✅ API key authentication (supports multiple keys)
 - ✅ Dependency injection for better testability
 - ✅ Configurable PDF options via request payload
@@ -110,7 +112,7 @@ GET /health
 
 #### Generate PDF
 ```bash
-POST /documents/generator/pdf
+POST /documents/pdf
 ```
 
 **Headers:**
@@ -135,14 +137,23 @@ POST /documents/generator/pdf
 }
 ```
 
+The `contentType` field supports:
+
+| Value | Description |
+|-------|-------------|
+| `html` | Raw HTML string |
+| `docx` | Base64-encoded DOCX (Microsoft Word) binary content |
+| `word-xml` | Word XML string (flat OOXML or Word 2003 XML) |
+
 **Response:**
 - Success: Returns PDF file as a binary stream
 - Error: Returns JSON with error details
 
 ### Example with cURL
 
+**HTML to PDF:**
 ```bash
-curl -X POST http://localhost:3000/documents/generator/pdf \
+curl -X POST http://localhost:3000/documents/pdf \
   -H "Content-Type: application/json" \
   -H "x-api-key: your-api-key" \
   -d '{
@@ -156,10 +167,45 @@ curl -X POST http://localhost:3000/documents/generator/pdf \
   --output output.pdf
 ```
 
+**DOCX to PDF:**
+```bash
+# First encode the DOCX file to base64
+DOCX_BASE64=$(base64 -w 0 document.docx)
+
+curl -X POST http://localhost:3000/documents/pdf \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-api-key" \
+  -d "{
+    \"contentType\": \"docx\",
+    \"content\": \"$DOCX_BASE64\",
+    \"options\": {
+      \"format\": \"A4\",
+      \"printBackground\": true
+    }
+  }" \
+  --output output.pdf
+```
+
+**Word XML to PDF:**
+```bash
+curl -X POST http://localhost:3000/documents/pdf \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-api-key" \
+  -d '{
+    "contentType": "word-xml",
+    "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>...",
+    "options": {
+      "format": "A4"
+    }
+  }' \
+  --output output.pdf
+```
+
 ### Example with JavaScript
 
+**HTML to PDF:**
 ```javascript
-const response = await fetch('http://localhost:3000/documents/generator/pdf', {
+const response = await fetch('http://localhost:3000/documents/pdf', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -168,6 +214,32 @@ const response = await fetch('http://localhost:3000/documents/generator/pdf', {
   body: JSON.stringify({
     contentType: 'html',
     content: '<html><body><h1>Hello World</h1></body></html>',
+    options: {
+      format: 'A4',
+      printBackground: true,
+    },
+  }),
+});
+
+const pdfBlob = await response.blob();
+// Save or display the PDF
+```
+
+**DOCX to PDF:**
+```javascript
+// Read the DOCX file and convert to base64
+const fs = require('fs');
+const docxBase64 = fs.readFileSync('document.docx').toString('base64');
+
+const response = await fetch('http://localhost:3000/documents/pdf', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'your-api-key',
+  },
+  body: JSON.stringify({
+    contentType: 'docx',
+    content: docxBase64,
     options: {
       format: 'A4',
       printBackground: true,

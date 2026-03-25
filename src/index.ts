@@ -38,17 +38,36 @@ app.get('/', (_req: Request, res: Response) => {
         'Content-Type': 'application/json',
         'x-api-key': 'your-api-key',
       },
-      body: {
-        contentType: 'html',
-        content: '<html><body><h1>Hello World</h1></body></html>',
-        options: {
-          format: 'A4',
-          printBackground: true,
-          margin: {
-            top: '1cm',
-            right: '1cm',
-            bottom: '1cm',
-            left: '1cm',
+      supportedContentTypes: ['html', 'docx', 'word-xml'],
+      examples: {
+        html: {
+          contentType: 'html',
+          content: '<html><body><h1>Hello World</h1></body></html>',
+          options: {
+            format: 'A4',
+            printBackground: true,
+            margin: {
+              top: '1cm',
+              right: '1cm',
+              bottom: '1cm',
+              left: '1cm',
+            },
+          },
+        },
+        docx: {
+          contentType: 'docx',
+          content: '<base64-encoded-docx-file-content>',
+          options: {
+            format: 'A4',
+            printBackground: true,
+          },
+        },
+        wordXml: {
+          contentType: 'word-xml',
+          content: '<flat-ooxml-or-word-xml-string>',
+          options: {
+            format: 'A4',
+            printBackground: true,
           },
         },
       },
