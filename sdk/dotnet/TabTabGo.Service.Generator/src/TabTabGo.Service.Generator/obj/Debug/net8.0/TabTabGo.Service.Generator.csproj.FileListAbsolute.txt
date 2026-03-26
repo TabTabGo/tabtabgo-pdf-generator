@@ -1,0 +1,13 @@
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/bin/Debug/net8.0/TabTabGo.Service.Generator.deps.json
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/bin/Debug/net8.0/TabTabGo.Service.Generator.dll
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/bin/Debug/net8.0/TabTabGo.Service.Generator.pdb
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.csproj.AssemblyReference.cache
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.AssemblyInfoInputs.cache
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.AssemblyInfo.cs
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.csproj.CoreCompileInputs.cache
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.sourcelink.json
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.dll
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/refint/TabTabGo.Service.Generator.dll
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/TabTabGo.Service.Generator.pdb
+/home/runner/work/tabtabgo-pdf-generator/tabtabgo-pdf-generator/sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/obj/Debug/net8.0/ref/TabTabGo.Service.Generator.dll

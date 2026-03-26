@@ -1,0 +1,142 @@
+name: SDK – Build, Test & Publish NuGet
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'sdk/dotnet/**'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'sdk/dotnet/**'
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to NuGet.org'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  PROJECT_PATH: sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/TabTabGo.Service.Generator.csproj
+  SOLUTION_PATH: sdk/dotnet/TabTabGo.Service.Generator/TabTabGo.Service.Generator.slnx
+
+jobs:
+  # ──────────────────────────────────────────────
+  # 1. Build & Test
+  # ──────────────────────────────────────────────
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Test
+        run: >
+          dotnet test ${{ env.SOLUTION_PATH }}
+          --configuration Release
+          --no-build
+          --verbosity normal
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/*.trx'
+
+  # ──────────────────────────────────────────────
+  # 2. Pack & Publish (on release or manual trigger)
+  # ──────────────────────────────────────────────
+  publish-nuget:
+    name: Publish NuGet Package
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: >
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish == 'true')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Determine package version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            # Strip leading 'v' from release tag (e.g. v1.2.3 → 1.2.3)
+            VERSION="${{ github.event.release.tag_name }}"
+            VERSION="${VERSION#v}"
+          else
+            # Fallback: use the version defined in the .csproj
+            VERSION=$(grep -oPm1 '(?<=<Version>)[^<]+' ${{ env.PROJECT_PATH }})
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Package version: ${VERSION}"
+
+      - name: Restore
+        run: dotnet restore ${{ env.PROJECT_PATH }}
+
+      - name: Build
+        run: >
+          dotnet build ${{ env.PROJECT_PATH }}
+          --configuration Release
+          --no-restore
+          /p:Version=${{ steps.version.outputs.version }}
+
+      - name: Pack
+        run: >
+          dotnet pack ${{ env.PROJECT_PATH }}
+          --configuration Release
+          --no-build
+          --output ./artifacts
+          /p:Version=${{ steps.version.outputs.version }}
+
+      - name: Upload NuGet artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: artifacts/
+
+      - name: Push to NuGet.org
+        run: >
+          dotnet nuget push artifacts/*.nupkg
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      - name: Push symbols to NuGet.org
+        run: >
+          dotnet nuget push artifacts/*.snupkg
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+        continue-on-error: true
