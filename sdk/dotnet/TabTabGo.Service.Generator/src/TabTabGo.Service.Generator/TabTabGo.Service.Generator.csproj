@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>TabTabGo.Service.Generator</AssemblyName>
+    <RootNamespace>TabTabGo.Service.Generator</RootNamespace>
+
+    <!-- NuGet package metadata -->
+    <PackageId>TabTabGo.Service.Generator</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>TabTabGo</Authors>
+    <Company>TabTabGo</Company>
+    <Product>TabTabGo PDF Generator SDK</Product>
+    <Description>A .NET 8 SDK for the TabTabGo PDF Generator service. Provides a strongly-typed client to generate PDFs from HTML, DOCX, and Word XML without needing to manage HTTP calls, authentication, or logging manually.</Description>
+    <PackageTags>pdf;generator;tabtabgo;html-to-pdf;docx-to-pdf;word-to-pdf</PackageTags>
+    <PackageLicenseExpression>ISC</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/TabTabGo/tabtabgo-pdf-generator</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+    <!-- Source Link / deterministic build support -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
+  </ItemGroup>
+
+</Project>
