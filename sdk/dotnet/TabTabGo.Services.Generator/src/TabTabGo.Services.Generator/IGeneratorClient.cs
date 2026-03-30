@@ -1,6 +1,6 @@
-using TabTabGo.Service.Generator.Models;
+using TabTabGo.Services.Generator.Models;
 
-namespace TabTabGo.Service.Generator;
+namespace TabTabGo.Services.Generator;
 
 /// <summary>
 /// Defines the contract for interacting with the TabTabGo PDF Generator service.
