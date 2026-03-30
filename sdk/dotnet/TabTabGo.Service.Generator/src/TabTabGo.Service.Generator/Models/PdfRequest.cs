@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace TabTabGo.Service.Generator.Models;
 
 /// <summary>
-/// Request payload for the <c>POST /documents/pdf</c> endpoint.
+/// Request payload for the <c>POST /v1/documents/pdf</c> endpoint.
 /// </summary>
 internal class PdfRequest
 {

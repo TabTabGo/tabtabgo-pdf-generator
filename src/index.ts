@@ -10,7 +10,7 @@ app.use(express.json({ limit: '10mb' })); // Support larger HTML content
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint (no auth required)
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/v1/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'tabtabgo-pdf-generator',
@@ -19,20 +19,20 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // API documentation endpoint (no auth required)
-app.get('/', (_req: Request, res: Response) => {
+app.get('/v1', (_req: Request, res: Response) => {
   res.json({
     service: 'TabTabGo PDF Generator Service',
     version: '1.0.0',
     endpoints: {
-      health: 'GET /health',
-      generatePdf: 'POST /documents/pdf',
+      health: 'GET /v1/health',
+      generatePdf: 'POST /v1/documents/pdf',
     },
     authentication: {
       type: 'API Key',
       headers: ['x-api-key', 'Authorization (Bearer token)'],
     },
     usage: {
-      endpoint: '/documents/pdf',
+      endpoint: '/v1/documents/pdf',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -76,7 +76,7 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Apply API key authentication to protected routes
-app.use('/documents', apiKeyAuth, generatorRoutes);
+app.use('/v1/documents', apiKeyAuth, generatorRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
