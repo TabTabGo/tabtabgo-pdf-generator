@@ -12,7 +12,7 @@ app.use(express.json({ limit: '10mb' })); // Support larger HTML content
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint (no auth required)
-app.get('/health', (_req: Request, res: Response) => {
+app.get('/v1/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'tabtabgo-pdf-generator',
@@ -25,7 +25,7 @@ app.use('/', swaggerUi.serve);
 app.get('/', swaggerUi.setup(openApiSpec, { customSiteTitle: 'TabTabGo PDF Generator API' }));
 
 // Apply API key authentication to protected routes
-app.use('/documents', apiKeyAuth, generatorRoutes);
+app.use('/v1/documents', apiKeyAuth, generatorRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

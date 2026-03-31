@@ -15,8 +15,8 @@ const openApiSpec = {
   },
   servers: [
     {
-      url: '/',
-      description: 'Current server',
+      url: '/v1',
+      description: 'Current server (v1)',
     },
   ],
   tags: [
