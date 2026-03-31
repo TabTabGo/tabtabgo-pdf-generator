@@ -11,14 +11,16 @@ const app = express();
 app.use(express.json({ limit: '10mb' })); // Support larger HTML content
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint (no auth required)
-app.get('/v1/health', (_req: Request, res: Response) => {
+// Health check endpoints (no auth required)
+const healthHandler = (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'tabtabgo-pdf-generator',
     timestamp: new Date().toISOString(),
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/v1/health', healthHandler);
 
 // API documentation (Swagger UI) – no auth required
 app.use('/', swaggerUi.serve);
