@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TabTabGo.Service.Generator\TabTabGo.Service.Generator.csproj" />
+    <ProjectReference Include="..\..\src\TabTabGo.Services.Generator\TabTabGo.Services.Generator.csproj" />
   </ItemGroup>
 
 </Project>

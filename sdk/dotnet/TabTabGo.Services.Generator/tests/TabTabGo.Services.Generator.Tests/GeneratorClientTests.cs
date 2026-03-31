@@ -7,11 +7,11 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
-using TabTabGo.Service.Generator;
-using TabTabGo.Service.Generator.Models;
+using TabTabGo.Services.Generator;
+using TabTabGo.Services.Generator.Models;
 using Xunit;
 
-namespace TabTabGo.Service.Generator.Tests;
+namespace TabTabGo.Services.Generator.Tests;
 
 public class GeneratorClientTests
 {

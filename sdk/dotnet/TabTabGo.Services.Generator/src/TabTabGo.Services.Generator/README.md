@@ -1,4 +1,4 @@
-# TabTabGo.Service.Generator
+# TabTabGo.Services.Generator
 
 A .NET 8 SDK for the [TabTabGo PDF Generator](https://github.com/TabTabGo/tabtabgo-pdf-generator) service.
 
@@ -7,7 +7,7 @@ Instead of writing raw `HttpClient` calls, handling API-key headers, serializati
 ## Installation
 
 ```bash
-dotnet add package TabTabGo.Service.Generator
+dotnet add package TabTabGo.Services.Generator
 ```
 
 ## Configuration

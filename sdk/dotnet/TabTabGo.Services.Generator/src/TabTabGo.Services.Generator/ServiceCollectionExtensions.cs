@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace TabTabGo.Service.Generator;
+namespace TabTabGo.Services.Generator;
 
 /// <summary>
 /// Extension methods for registering the TabTabGo Generator client with the .NET dependency injection container.

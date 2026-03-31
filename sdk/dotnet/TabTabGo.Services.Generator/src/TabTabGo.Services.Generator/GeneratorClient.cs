@@ -2,9 +2,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using TabTabGo.Service.Generator.Models;
+using TabTabGo.Services.Generator.Models;
 
-namespace TabTabGo.Service.Generator;
+namespace TabTabGo.Services.Generator;
 
 /// <summary>
 /// HTTP client for the TabTabGo PDF Generator service.
