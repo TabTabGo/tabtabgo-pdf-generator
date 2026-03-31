@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TabTabGo.Services.Generator/TabTabGo.Services.Generator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TabTabGo.Services.Generator.Tests/TabTabGo.Services.Generator.Tests.csproj" />
+  </Folder>
+</Solution>

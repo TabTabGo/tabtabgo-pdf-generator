@@ -5,11 +5,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <AssemblyName>TabTabGo.Service.Generator</AssemblyName>
-    <RootNamespace>TabTabGo.Service.Generator</RootNamespace>
+    <AssemblyName>TabTabGo.Services.Generator</AssemblyName>
+    <RootNamespace>TabTabGo.Services.Generator</RootNamespace>
 
     <!-- NuGet package metadata -->
-    <PackageId>TabTabGo.Service.Generator</PackageId>
+    <PackageId>TabTabGo.Services.Generator</PackageId>
     <Version>1.0.0</Version>
     <Authors>TabTabGo</Authors>
     <Company>TabTabGo</Company>

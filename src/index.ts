@@ -1,7 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import { config } from './config/index.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import generatorRoutes from './routes/generator.js';
+import openApiSpec from './openapi.js';
 
 const app = express();
 
@@ -18,62 +20,9 @@ app.get('/v1/health', (_req: Request, res: Response) => {
   });
 });
 
-// API documentation endpoint (no auth required)
-app.get('/v1', (_req: Request, res: Response) => {
-  res.json({
-    service: 'TabTabGo PDF Generator Service',
-    version: '1.0.0',
-    endpoints: {
-      health: 'GET /v1/health',
-      generatePdf: 'POST /v1/documents/pdf',
-    },
-    authentication: {
-      type: 'API Key',
-      headers: ['x-api-key', 'Authorization (Bearer token)'],
-    },
-    usage: {
-      endpoint: '/v1/documents/pdf',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': 'your-api-key',
-      },
-      supportedContentTypes: ['html', 'docx', 'word-xml'],
-      examples: {
-        html: {
-          contentType: 'html',
-          content: '<html><body><h1>Hello World</h1></body></html>',
-          options: {
-            format: 'A4',
-            printBackground: true,
-            margin: {
-              top: '1cm',
-              right: '1cm',
-              bottom: '1cm',
-              left: '1cm',
-            },
-          },
-        },
-        docx: {
-          contentType: 'docx',
-          content: '<base64-encoded-docx-file-content>',
-          options: {
-            format: 'A4',
-            printBackground: true,
-          },
-        },
-        wordXml: {
-          contentType: 'word-xml',
-          content: '<flat-ooxml-or-word-xml-string>',
-          options: {
-            format: 'A4',
-            printBackground: true,
-          },
-        },
-      },
-    },
-  });
-});
+// API documentation (Swagger UI) – no auth required
+app.use('/', swaggerUi.serve);
+app.get('/', swaggerUi.setup(openApiSpec, { customSiteTitle: 'TabTabGo PDF Generator API' }));
 
 // Apply API key authentication to protected routes
 app.use('/v1/documents', apiKeyAuth, generatorRoutes);

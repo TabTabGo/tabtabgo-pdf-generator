@@ -2,9 +2,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using TabTabGo.Service.Generator.Models;
+using TabTabGo.Services.Generator.Models;
 
-namespace TabTabGo.Service.Generator;
+namespace TabTabGo.Services.Generator;
 
 /// <summary>
 /// HTTP client for the TabTabGo PDF Generator service.
@@ -61,6 +61,18 @@ public sealed class GeneratorClient : IGeneratorClient
 
         _httpClient.DefaultRequestHeaders.Add(ApiKeyHeader, generatorOptions.ApiKey);
         _httpClient.Timeout = generatorOptions.Timeout;
+    }
+
+    /// <inheritdoc/>
+    public Task<byte[]> GeneratePdfAsync(
+        string contentType,
+        string content,
+        PdfOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        return SendPdfRequestAsync(contentType, content, options, cancellationToken);
     }
 
     /// <inheritdoc/>

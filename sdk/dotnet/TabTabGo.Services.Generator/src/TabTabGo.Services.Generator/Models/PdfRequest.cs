@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace TabTabGo.Service.Generator.Models;
+namespace TabTabGo.Services.Generator.Models;
 
 /// <summary>
 /// Request payload for the <c>POST /v1/documents/pdf</c> endpoint.

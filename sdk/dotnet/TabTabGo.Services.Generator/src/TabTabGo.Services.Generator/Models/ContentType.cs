@@ -1,4 +1,4 @@
-namespace TabTabGo.Service.Generator.Models;
+namespace TabTabGo.Services.Generator.Models;
 
 /// <summary>
 /// The content type of the document to convert to PDF.
