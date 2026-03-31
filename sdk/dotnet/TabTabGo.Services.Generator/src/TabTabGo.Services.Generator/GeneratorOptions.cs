@@ -1,4 +1,4 @@
-namespace TabTabGo.Service.Generator;
+namespace TabTabGo.Services.Generator;
 
 /// <summary>
 /// Configuration options for the TabTabGo PDF Generator service client.

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace TabTabGo.Service.Generator.Models;
+namespace TabTabGo.Services.Generator.Models;
 
 /// <summary>
 /// Puppeteer-compatible margin settings for the generated PDF.

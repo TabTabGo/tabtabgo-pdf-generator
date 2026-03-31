@@ -7,7 +7,7 @@ A Node.js service that converts HTML to PDF using Puppeteer with API key authent
 - ✅ Convert HTML to PDF using Puppeteer
 - ✅ Convert Microsoft Word documents (DOCX) to PDF
 - ✅ Convert Word XML documents to PDF
-- ✅ RESTful API with `/documents/pdf` endpoint
+- ✅ RESTful API with versioned `/v1/documents/pdf` endpoint
 - ✅ API key authentication (supports multiple keys)
 - ✅ Dependency injection for better testability
 - ✅ Configurable PDF options via request payload
@@ -107,12 +107,12 @@ The service will start on `http://localhost:3000` (or the port specified in `.en
 
 #### Health Check
 ```bash
-GET /health
+GET /v1/health
 ```
 
 #### Generate PDF
 ```bash
-POST /documents/pdf
+POST /v1/documents/pdf
 ```
 
 **Headers:**
@@ -153,7 +153,7 @@ The `contentType` field supports:
 
 **HTML to PDF:**
 ```bash
-curl -X POST http://localhost:3000/documents/pdf \
+curl -X POST http://localhost:3000/v1/documents/pdf \
   -H "Content-Type: application/json" \
   -H "x-api-key: your-api-key" \
   -d '{
@@ -172,7 +172,7 @@ curl -X POST http://localhost:3000/documents/pdf \
 # First encode the DOCX file to base64
 DOCX_BASE64=$(base64 -w 0 document.docx)
 
-curl -X POST http://localhost:3000/documents/pdf \
+curl -X POST http://localhost:3000/v1/documents/pdf \
   -H "Content-Type: application/json" \
   -H "x-api-key: your-api-key" \
   -d "{
@@ -188,7 +188,7 @@ curl -X POST http://localhost:3000/documents/pdf \
 
 **Word XML to PDF:**
 ```bash
-curl -X POST http://localhost:3000/documents/pdf \
+curl -X POST http://localhost:3000/v1/documents/pdf \
   -H "Content-Type: application/json" \
   -H "x-api-key: your-api-key" \
   -d '{
@@ -205,7 +205,7 @@ curl -X POST http://localhost:3000/documents/pdf \
 
 **HTML to PDF:**
 ```javascript
-const response = await fetch('http://localhost:3000/documents/pdf', {
+const response = await fetch('http://localhost:3000/v1/documents/pdf', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -231,7 +231,7 @@ const pdfBlob = await response.blob();
 const fs = require('fs');
 const docxBase64 = fs.readFileSync('document.docx').toString('base64');
 
-const response = await fetch('http://localhost:3000/documents/pdf', {
+const response = await fetch('http://localhost:3000/v1/documents/pdf', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

@@ -27,8 +27,8 @@ on:
 
 env:
   DOTNET_VERSION: '8.0.x'
-  PROJECT_PATH: sdk/dotnet/TabTabGo.Service.Generator/src/TabTabGo.Service.Generator/TabTabGo.Service.Generator.csproj
-  SOLUTION_PATH: sdk/dotnet/TabTabGo.Service.Generator/TabTabGo.Service.Generator.slnx
+  PROJECT_PATH: sdk/dotnet/TabTabGo.Services.Generator/src/TabTabGo.Services.Generator/TabTabGo.Services.Generator.csproj
+  SOLUTION_PATH: sdk/dotnet/TabTabGo.Services.Generator/TabTabGo.Services.Generator.slnx
 
 jobs:
   # ──────────────────────────────────────────────

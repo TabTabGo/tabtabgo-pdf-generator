@@ -7,17 +7,17 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Moq.Protected;
-using TabTabGo.Service.Generator;
-using TabTabGo.Service.Generator.Models;
+using TabTabGo.Services.Generator;
+using TabTabGo.Services.Generator.Models;
 using Xunit;
 
-namespace TabTabGo.Service.Generator.Tests;
+namespace TabTabGo.Services.Generator.Tests;
 
 public class GeneratorClientTests
 {
     private const string BaseUrl = "https://pdf.example.com/";
     private const string ApiKey = "test-api-key";
-    private const string PdfEndpoint = "documents/pdf";
+    private const string PdfEndpoint = "v1/documents/pdf";
 
     private static (GeneratorClient client, Mock<HttpMessageHandler> handler) CreateClient(
         HttpResponseMessage response)
@@ -185,6 +185,99 @@ public class GeneratorClientTests
 
         await Assert.ThrowsAsync<ArgumentNullException>(
             () => client.GeneratePdfFromHtmlAsync(null!));
+    }
+
+    [Fact]
+    public async Task GeneratePdfAsync_ReturnsBytes_OnSuccess()
+    {
+        var pdfBytes = Encoding.UTF8.GetBytes("%PDF-1.4 fake-pdf-content");
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(pdfBytes)
+        };
+        response.Content.Headers.ContentType = new("application/pdf");
+
+        var (client, _) = CreateClient(response);
+
+        var result = await client.GeneratePdfAsync("html", "<html><body>Hello</body></html>");
+
+        Assert.Equal(pdfBytes, result);
+    }
+
+    [Fact]
+    public async Task GeneratePdfAsync_SendsProvidedContentType()
+    {
+        var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(pdfBytes)
+        };
+
+        var (client, handler) = CreateClient(response);
+
+        await client.GeneratePdfAsync("custom-type", "some content");
+
+        handler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.Is<HttpRequestMessage>(r => RequestContainsContentType(r, "custom-type")),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GeneratePdfAsync_Throws_GeneratorServiceException_OnNonSuccessResponse()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent("{\"error\":\"Bad Request\"}")
+        };
+
+        var (client, _) = CreateClient(response);
+
+        var ex = await Assert.ThrowsAsync<GeneratorServiceException>(
+            () => client.GeneratePdfAsync("html", "<html/>"));
+
+        Assert.Equal(400, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task GeneratePdfAsync_Throws_WhenContentTypeIsNull()
+    {
+        var (client, _) = CreateClient(new HttpResponseMessage(HttpStatusCode.OK));
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => client.GeneratePdfAsync(null!, "content"));
+    }
+
+    [Fact]
+    public async Task GeneratePdfAsync_Throws_WhenContentIsNull()
+    {
+        var (client, _) = CreateClient(new HttpResponseMessage(HttpStatusCode.OK));
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => client.GeneratePdfAsync("html", null!));
+    }
+
+    [Fact]
+    public async Task GeneratePdfAsync_SendsApiKeyHeader()
+    {
+        var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46 };
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(pdfBytes)
+        };
+
+        var (client, handler) = CreateClient(response);
+
+        await client.GeneratePdfAsync("html", "<html/>");
+
+        handler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.Is<HttpRequestMessage>(r =>
+                r.Headers.Contains("x-api-key") &&
+                r.Headers.GetValues("x-api-key").First() == ApiKey),
+            ItExpr.IsAny<CancellationToken>());
     }
 
     // --- helpers ---

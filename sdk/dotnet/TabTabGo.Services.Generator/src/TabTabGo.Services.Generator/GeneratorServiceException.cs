@@ -1,4 +1,4 @@
-namespace TabTabGo.Service.Generator;
+namespace TabTabGo.Services.Generator;
 
 /// <summary>
 /// Exception thrown when the TabTabGo PDF Generator service returns a non-success HTTP response.
