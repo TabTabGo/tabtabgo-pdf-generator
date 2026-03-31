@@ -17,7 +17,7 @@ public class GeneratorClientTests
 {
     private const string BaseUrl = "https://pdf.example.com/";
     private const string ApiKey = "test-api-key";
-    private const string PdfEndpoint = "documents/pdf";
+    private const string PdfEndpoint = "v1/documents/pdf";
 
     private static (GeneratorClient client, Mock<HttpMessageHandler> handler) CreateClient(
         HttpResponseMessage response)

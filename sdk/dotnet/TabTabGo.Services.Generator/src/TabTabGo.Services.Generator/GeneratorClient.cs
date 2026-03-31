@@ -12,7 +12,7 @@ namespace TabTabGo.Services.Generator;
 /// </summary>
 public sealed class GeneratorClient : IGeneratorClient
 {
-    private const string PdfEndpoint = "documents/pdf";
+    private const string PdfEndpoint = "v1/documents/pdf";
     private const string ApiKeyHeader = "x-api-key";
 
     private readonly HttpClient _httpClient;
