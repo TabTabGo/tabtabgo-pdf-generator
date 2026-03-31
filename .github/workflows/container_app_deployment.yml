@@ -4,22 +4,33 @@ name: Deployment for Document PDF services
 on:
   # Automatically trigger it when detected changes in repo
   push:
-    branches: 
+    branches:
       [ master ]
 
-  # Allow manual trigger 
-  workflow_dispatch:      
+  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write #This is required for requesting the OIDC JWT Token
       contents: read #Required when GH token is used to authenticate with private repo
 
     steps:
       - name: Checkout to the branch
         uses: actions/checkout@v2
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUILD_NUMBER=${{ github.run_number }}
+          FULL_VERSION="${VERSION}-${BUILD_NUMBER}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+          echo "full_version=${FULL_VERSION}" >> $GITHUB_OUTPUT
+          echo "Docker image version: ${FULL_VERSION}"
 
       - name: Azure Login
         uses: azure/login@v2
@@ -41,13 +52,13 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ github.sha }}
+          tags: |
+            ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ steps.version.outputs.full_version }}
+            ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:latest
 
       - name: Deploy to Azure Container App
         uses: azure/container-apps-deploy-action@v2
         with:
-          containerAppName: ca-generator
+          containerAppName: ca-services-generator
           resourceGroup: tabs
-          imageToDeploy: ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ github.sha }}
-          
-
+          imageToDeploy: ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ steps.version.outputs.full_version }}
