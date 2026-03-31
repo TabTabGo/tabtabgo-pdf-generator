@@ -64,6 +64,18 @@ public sealed class GeneratorClient : IGeneratorClient
     }
 
     /// <inheritdoc/>
+    public Task<byte[]> GeneratePdfAsync(
+        string contentType,
+        string content,
+        PdfOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(content);
+        return SendPdfRequestAsync(contentType, content, options, cancellationToken);
+    }
+
+    /// <inheritdoc/>
     public Task<byte[]> GeneratePdfFromHtmlAsync(
         string htmlContent,
         PdfOptions? options = null,
