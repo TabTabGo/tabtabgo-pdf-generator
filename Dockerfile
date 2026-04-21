@@ -1,8 +1,31 @@
 # Use Puppeteer base image which has all required dependencies
 FROM ghcr.io/puppeteer/puppeteer:23.9.0
 
+# Install LibreOffice + fonts for server-side DOCX/XML to PDF conversion
+USER root
+RUN apt-get update && \
+        apt-get install -y --no-install-recommends \
+            libreoffice \
+            libreoffice-writer \
+            ure \
+            fontconfig \
+            fonts-dejavu-core \
+            fonts-dejavu-extra \
+            fonts-liberation \
+            fonts-liberation2 \
+            fonts-crosextra-carlito \
+            fonts-crosextra-caladea \
+            fonts-noto-core \
+            fonts-noto-extra \
+            fonts-noto-cjk \
+            fonts-noto-color-emoji && \
+        rm -rf /var/lib/apt/lists/* && \
+        fc-cache -f -v
+
 # Set working directory
+RUN mkdir -p /home/pptruser/app && chown -R pptruser:pptruser /home/pptruser/app
 WORKDIR /home/pptruser/app
+USER pptruser
 
 # Copy package files
 COPY --chown=pptruser:pptruser package.json package-lock.json tsconfig.json ./
@@ -26,6 +49,7 @@ EXPOSE 3000
 
 # Set environment variables
 ENV NODE_ENV=production
+ENV LIBREOFFICE_PATH=/usr/bin/soffice
 # Find and use Chrome installed in the base image (dynamically locate latest version)
 # The base image installs Chrome in /home/pptruser/.cache/puppeteer/chrome/
 # We'll set this at runtime via entrypoint to handle version changes gracefully

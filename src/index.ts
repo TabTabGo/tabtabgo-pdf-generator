@@ -4,23 +4,41 @@ import { config } from './config/index.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import generatorRoutes from './routes/generator.js';
 import openApiSpec from './openapi.js';
+import { createOfficeFileStore } from './services/officeFileStore.js';
 
 const app = express();
+const officeFileStore = createOfficeFileStore();
 
 // Middleware
 app.use(express.json({ limit: '10mb' })); // Support larger HTML content
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoints (no auth required)
-const healthHandler = (_req: Request, res: Response) => {
+// Health check endpoint (no auth required)
+app.get('/v1/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'tabtabgo-pdf-generator',
     timestamp: new Date().toISOString(),
   });
-};
-app.get('/health', healthHandler);
-app.get('/v1/health', healthHandler);
+});
+
+app.get('/v1/internal/office-files/:id/:token', (req: Request<{ id: string; token: string }>, res: Response) => {
+  const fileEntry = officeFileStore.get(req.params.id, req.params.token);
+
+  if (!fileEntry) {
+    res.status(404).json({
+      error: 'Not Found',
+      message: 'Office conversion input file not found or expired',
+    });
+    return;
+  }
+
+  res.setHeader('Content-Type', fileEntry.contentType);
+  res.setHeader('Content-Length', fileEntry.buffer.length);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Content-Disposition', `inline; filename="${fileEntry.fileName}"`);
+  res.send(fileEntry.buffer);
+});
 
 // API documentation (Swagger UI) – no auth required
 app.use('/', swaggerUi.serve);

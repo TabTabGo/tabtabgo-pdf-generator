@@ -118,6 +118,28 @@ const openApiSpec = {
           },
         },
       },
+      PdfUploadRequest: {
+        type: 'object',
+        required: ['file', 'contentType'],
+        properties: {
+          file: {
+            type: 'string',
+            format: 'binary',
+            description: 'File to convert to PDF.',
+          },
+          contentType: {
+            type: 'string',
+            enum: ['html', 'xml', 'docx', 'word-xml'],
+            description: 'Input file type. `xml` is treated as `word-xml`.',
+            example: 'html',
+          },
+          options: {
+            type: 'string',
+            description: 'Optional JSON string for Puppeteer PDF options.',
+            example: '{"format":"A4","printBackground":true}',
+          },
+        },
+      },
       ErrorResponse: {
         type: 'object',
         properties: {
@@ -220,6 +242,74 @@ const openApiSpec = {
             headers: {
               'Content-Disposition': {
                 schema: { type: 'string', example: 'inline; filename="generated.pdf"' },
+              },
+            },
+          },
+          '400': {
+            description: 'Bad request – validation failed',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '401': {
+            description: 'Unauthorized – missing API key',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '403': {
+            description: 'Forbidden – invalid API key',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          '500': {
+            description: 'Internal server error',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/documents/pdf/upload': {
+      post: {
+        tags: ['Documents'],
+        summary: 'Generate PDF from uploaded file',
+        description:
+          'Uploads an HTML, DOCX, or Word XML file and converts it into a PDF document.',
+        operationId: 'generatePdfFromUpload',
+        security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: { $ref: '#/components/schemas/PdfUploadRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'PDF generated successfully',
+            content: {
+              'application/pdf': {
+                schema: {
+                  type: 'string',
+                  format: 'binary',
+                },
+              },
+            },
+            headers: {
+              'Content-Disposition': {
+                schema: { type: 'string', example: 'inline; filename="uploaded-file.pdf"' },
               },
             },
           },
