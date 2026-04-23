@@ -4,7 +4,7 @@ const openApiSpec = {
     title: 'TabTabGo PDF Generator Service',
     version: '1.0.0',
     description:
-      'A service for generating PDF documents from HTML, DOCX, or Word XML content using Puppeteer.',
+      'A service for generating PDF documents from HTML using Puppeteer and from DOCX/Word XML using ONLYOFFICE Docs.',
     contact: {
       name: 'TabTabGo',
       url: 'https://github.com/TabTabGo/tabtabgo-pdf-generator',

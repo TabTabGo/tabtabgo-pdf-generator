@@ -1,13 +1,13 @@
 # TabTabGo PDF Generator
 
-A Node.js service that converts HTML to PDF using Puppeteer and converts DOCX/Word XML to PDF using a configurable office backend.
+A Node.js service that converts HTML to PDF using Puppeteer and converts DOCX/Word XML to PDF using ONLYOFFICE Docs.
 
 ## Features
 
 - ✅ Convert HTML to PDF using Puppeteer
 - ✅ Convert Microsoft Word documents (DOCX) to PDF
 - ✅ Convert Word XML documents to PDF
-- ✅ Switch DOCX/Word XML conversion between LibreOffice and ONLYOFFICE Docs
+- ✅ High-fidelity DOCX/Word XML conversion using ONLYOFFICE Docs
 - ✅ RESTful API with versioned `/v1/documents/pdf` endpoint
 - ✅ API key authentication (supports multiple keys)
 - ✅ Dependency injection for better testability
@@ -42,19 +42,18 @@ docker-compose up -d
 
 ```bash
 # Build the image
-# Note: If building in an environment with certificate issues, use:
-# docker build --build-arg NPM_CONFIG_STRICT_SSL=false -t tabtabgo-pdf-generator .
 docker build -t tabtabgo-pdf-generator .
 
 # Run the container
 docker run -d \
   -p 3000:3000 \
   -e API_KEYS=6E1F96A8-0000-0000-0000-C2DB1F6D114D \
+  -e WEBSITES_PORT=3000 \
   --name pdf-generator \
   tabtabgo-pdf-generator
 ```
 
-The Docker image includes LibreOffice and a broad font pack (Liberation, Carlito/Caladea, DejaVu, and Noto families including Arabic/CJK/Emoji). For higher Word fidelity on Linux, you can switch DOCX/Word XML conversion to ONLYOFFICE Docs Community Edition, which is free to self-host.
+The Docker image includes the Node API, Puppeteer/Chrome, and ONLYOFFICE Docs in one container. This is designed for hosts such as Azure App Service that run a single container instead of Docker Compose.
 
 The service will be available at `http://localhost:3000`.
 
@@ -88,16 +87,18 @@ API_KEYS=your-secret-key-1,your-secret-key-2,your-secret-key-3
 
 ## Usage
 
-### Free Linux Word-compatible option
+### ONLYOFFICE conversion
 
-If you need better DOCX fidelity than LibreOffice on Linux, use ONLYOFFICE Docs Community Edition.
+DOCX and Word XML conversion always uses ONLYOFFICE Docs.
 
-1. Set `OFFICE_CONVERSION_ENGINE=onlyoffice`.
-2. Run the bundled `onlyoffice-documentserver` service from `docker-compose.yml`.
-3. Set `OFFICE_DOCUMENT_FETCH_BASE_URL` to a URL the ONLYOFFICE container can reach for this service. In the provided Compose file the default is `http://pdf-generator:3000`.
-4. If your ONLYOFFICE instance has JWT enabled, set `ONLYOFFICE_JWT_SECRET` in both services.
+The Docker image runs ONLYOFFICE inside the same container and defaults to:
 
-This is the closest free Linux-hosted option to Word-compatible server-side rendering in this project. Word automation is not Linux-compatible, and Microsoft Graph / commercial SDKs are not free.
+```env
+ONLYOFFICE_DOCUMENT_SERVER_URL=http://127.0.0.1
+OFFICE_DOCUMENT_FETCH_BASE_URL=http://127.0.0.1:3000
+```
+
+If you run the Node app outside Docker, point `ONLYOFFICE_DOCUMENT_SERVER_URL` at a reachable ONLYOFFICE Docs instance, and set `OFFICE_DOCUMENT_FETCH_BASE_URL` to a URL that instance can use to fetch staged input files from this API.
 
 ### Start the server
 
@@ -172,14 +173,12 @@ The `contentType` field supports:
 | `docx`     | Base64-encoded DOCX (Microsoft Word) binary content |
 | `word-xml` | Word XML string (flat OOXML or Word 2003 XML)       |
 
-DOCX and `word-xml` requests use the configured office conversion backend:
+DOCX and `word-xml` requests use ONLYOFFICE Docs:
 
 | Environment variable             | Meaning                                                                     | Default       |
 | -------------------------------- | --------------------------------------------------------------------------- | ------------- |
-| `OFFICE_CONVERSION_ENGINE`       | Office backend for DOCX/Word XML conversion: `libreoffice` or `onlyoffice`  | `libreoffice` |
-| `LIBREOFFICE_PATH`               | Custom LibreOffice binary path                                              | Auto-detected |
-| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs, for example `http://onlyoffice-documentserver` | unset         |
-| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL that ONLYOFFICE uses to fetch staged input files from this service | unset         |
+| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                                                 | `http://127.0.0.1` |
+| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL that ONLYOFFICE uses to fetch staged input files from this service | `http://127.0.0.1:3000` |
 | `ONLYOFFICE_JWT_SECRET`          | Shared JWT secret for ONLYOFFICE Docs if enabled                            | unset         |
 | `ONLYOFFICE_REQUEST_TIMEOUT_MS`  | Timeout for ONLYOFFICE conversion and PDF download requests                 | `120000`      |
 
@@ -305,7 +304,10 @@ const pdfBlob = await response.blob();
 | `NODE_ENV`                  | Environment (development/production)                   | development                                  |
 | `API_KEYS`                  | Comma-separated list of API keys                       | -                                            |
 | `PUPPETEER_EXECUTABLE_PATH` | Custom Chromium path (optional)                        | -                                            |
-| `LIBREOFFICE_PATH`          | Custom LibreOffice binary path for DOCX/XML conversion | Auto-detected (`/usr/bin/soffice` in Docker) |
+| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                         | `http://127.0.0.1`                           |
+| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL ONLYOFFICE uses to fetch staged input files | `http://127.0.0.1:3000`                      |
+| `ONLYOFFICE_JWT_SECRET`     | Shared JWT secret for ONLYOFFICE Docs if enabled       | -                                            |
+| `ONLYOFFICE_REQUEST_TIMEOUT_MS` | Timeout for ONLYOFFICE conversion and PDF download requests | 120000                                |
 
 ### PDF Options
 

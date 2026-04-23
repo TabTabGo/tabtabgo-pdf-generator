@@ -3,17 +3,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # Uncomment if building in environment with certificate issues:
-      # args:
-      #   NPM_CONFIG_STRICT_SSL: "false"
     ports:
       - "3000:3000"
     environment:
       - PORT=3000
+      - WEBSITES_PORT=3000
       - NODE_ENV=production
-      - OFFICE_CONVERSION_ENGINE=${OFFICE_CONVERSION_ENGINE:-libreoffice}
-      - ONLYOFFICE_DOCUMENT_SERVER_URL=${ONLYOFFICE_DOCUMENT_SERVER_URL:-http://onlyoffice-documentserver}
-      - OFFICE_DOCUMENT_FETCH_BASE_URL=${OFFICE_DOCUMENT_FETCH_BASE_URL:-http://pdf-generator:3000}
+      - ONLYOFFICE_DOCUMENT_SERVER_URL=${ONLYOFFICE_DOCUMENT_SERVER_URL:-http://127.0.0.1}
+      - OFFICE_DOCUMENT_FETCH_BASE_URL=${OFFICE_DOCUMENT_FETCH_BASE_URL:-http://127.0.0.1:3000}
       - ONLYOFFICE_JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
       # IMPORTANT: Set API_KEYS environment variable before running
       # Example: export API_KEYS=your-secret-key-1,your-secret-key-2
@@ -22,12 +19,4 @@ services:
     restart: unless-stopped
     # Optional: Mount a volume for persistent logs
     # volumes:
-    #   - ./logs:/home/pptruser/app/logs
-
-  onlyoffice-documentserver:
-    image: onlyoffice/documentserver:latest
-    environment:
-      - JWT_ENABLED=${ONLYOFFICE_JWT_ENABLED:-false}
-      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-}
-      - ALLOW_PRIVATE_IP_ADDRESS=true
-    restart: unless-stopped
+    #   - ./logs:/opt/tabtabgo-pdf-generator/logs

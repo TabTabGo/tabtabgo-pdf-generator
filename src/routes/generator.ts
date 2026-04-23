@@ -196,10 +196,15 @@ router.post(
 
       if (normalizedContentType === 'word-xml') {
         const xmlContent = file.buffer.toString('utf8');
-        const docxBuffer = flatOpcConverterService.isFlatOpcXml(xmlContent)
-          ? await flatOpcConverterService.convertToDocx(xmlContent)
-          : file.buffer;
-        const pdfBuffer = await officeConverterService.convertToPdf(docxBuffer, 'docx');
+        let pdfBuffer: Buffer;
+
+        if (flatOpcConverterService.isFlatOpcXml(xmlContent)) {
+          const docxBuffer = await flatOpcConverterService.convertToDocx(xmlContent);
+          pdfBuffer = await officeConverterService.convertToPdf(docxBuffer, 'docx');
+        } else {
+          pdfBuffer = await officeConverterService.convertToPdf(file.buffer, 'xml');
+        }
+
         const fileBaseName = file.originalname.replace(/\.[^.]+$/, '') || 'generated';
         sendPdfResponse(res, pdfBuffer, fileBaseName);
         return;

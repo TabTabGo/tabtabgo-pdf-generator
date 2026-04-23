@@ -36,10 +36,7 @@ export class FlatOpcConverterService {
 
       const xmlDataMatch = partBody.match(XML_DATA_PATTERN);
       if (xmlDataMatch) {
-        const xmlContent = partName === 'word/document.xml'
-          ? this.normalizeDocumentXmlForLibreOffice(xmlDataMatch[1])
-          : xmlDataMatch[1];
-        zip.file(partName, xmlContent);
+        zip.file(partName, xmlDataMatch[1]);
         partCount += 1;
         continue;
       }
@@ -88,77 +85,6 @@ export class FlatOpcConverterService {
       .replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"')
       .replace(/&apos;/g, "'");
-  }
-
-  private normalizeDocumentXmlForLibreOffice(content: string): string {
-    return content.replace(/<w:tbl\b[\s\S]*?<\/w:tbl>/g, (tableXml) => {
-      return this.normalizeTableForLibreOffice(tableXml);
-    });
-  }
-
-  private normalizeTableForLibreOffice(tableXml: string): string {
-    const tableWithNormalizedPr = tableXml
-      .replace(/<w:tblPr>([\s\S]*?)<\/w:tblPr>/, (_match, tblPrContent: string) => {
-        const hadFloatingPosition = /<w:tblpPr\b[^>]*\/>/.test(tblPrContent);
-        const normalizedTblPrContent = tblPrContent
-          .replace(/<w:tblpPr\b[^>]*\/>/g, '')
-          .replace(/<w:shd\b[^>]*\/>/g, '');
-
-        const withoutFloatIndent = hadFloatingPosition
-          ? normalizedTblPrContent.replace(/<w:tblInd\b[^>]*\/>/g, '')
-          : normalizedTblPrContent;
-
-        const withStableLayout = /<w:tblLayout\b[^>]*\/>/.test(withoutFloatIndent)
-          ? withoutFloatIndent
-          : `${withoutFloatIndent}<w:tblLayout w:type="fixed"/>`;
-
-        return `<w:tblPr>${withStableLayout}</w:tblPr>`;
-      });
-
-    const rows = tableWithNormalizedPr.match(/<w:tr\b[\s\S]*?<\/w:tr>/g);
-    if (!rows || rows.length < 2) {
-      return tableWithNormalizedPr;
-    }
-
-    const tableMayBandRows = /<w:tblLook\b[^>]*w:noHBand="0"/.test(tableWithNormalizedPr);
-    const firstRowHasCellShading = /<w:tr\b[\s\S]*?<w:tcPr>[\s\S]*?<w:shd\b[^>]*\/>[\s\S]*?<\/w:tcPr>[\s\S]*?<\/w:tr>/.test(rows[0]);
-    const shouldNormalizeBodyBackground = tableMayBandRows || firstRowHasCellShading;
-
-    if (!shouldNormalizeBodyBackground) {
-      return tableWithNormalizedPr.replace(
-        /<w:tblLook\b([^>]*)w:noHBand="0"([^>]*)\/>/,
-        '<w:tblLook$1w:noHBand="1"$2/>',
-      );
-    }
-
-    const normalizedRows = rows.map((rowXml, index) => {
-      if (index === 0) {
-        return rowXml;
-      }
-
-      return rowXml.replace(/<w:tcPr>([\s\S]*?)<\/w:tcPr>/g, (_match, tcPrContent: string) => {
-        let normalizedTcPr = tcPrContent;
-
-        if (!/<w:shd\b[^>]*\/>/.test(normalizedTcPr)) {
-          normalizedTcPr = normalizedTcPr.replace(
-            /(<w:vAlign\b[^>]*\/>)|$/,
-            '<w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/>$1',
-          );
-        }
-
-        return `<w:tcPr>${normalizedTcPr}</w:tcPr>`;
-      });
-    });
-
-    const normalizedTable = normalizedRows.reduce(
-      (currentTable, rowXml, index) => currentTable.replace(rows[index], rowXml),
-      tableWithNormalizedPr,
-    );
-
-    return normalizedTable.replace(
-      /<w:tblLook\b([^>]*)w:noHBand="0"([^>]*)\/>/,
-      '<w:tblLook$1w:noHBand="1"$2/>',
-    );
   }
 
   private buildContentTypesXml(partContentTypes: Map<string, string>): string {
