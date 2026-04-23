@@ -309,7 +309,7 @@ const openApiSpec = {
             },
             headers: {
               'Content-Disposition': {
-                schema: { type: 'string', example: 'inline; filename="uploaded-file.pdf"' },
+                schema: { type: 'string', example: 'attachment; filename="uploaded-file.pdf"' },
               },
             },
           },
