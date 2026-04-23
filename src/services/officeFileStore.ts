@@ -36,16 +36,24 @@ export class OfficeFileStore {
     return entry;
   }
 
+  /**
+   * Retrieves and immediately removes the entry (single-use).
+   * This ensures that a token leaked via proxy logs cannot be replayed
+   * once ONLYOFFICE has successfully fetched the file.
+   */
   get(id: string, token: string): OfficeFileStoreEntry | null {
     this.cleanupExpiredEntries();
 
     const entry = this.entries.get(id);
+
+    // Always delete on lookup to enforce single-use semantics.
+    this.entries.delete(id);
+
     if (!entry || entry.token !== token) {
       return null;
     }
 
     if (entry.expiresAt <= Date.now()) {
-      this.entries.delete(id);
       return null;
     }
 

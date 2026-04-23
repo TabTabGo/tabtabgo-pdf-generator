@@ -23,6 +23,21 @@ interface PdfGenerationRequest {
   options?: PDFOptions;
 }
 
+const BASE64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+
+const decodeBase64Docx = (content: string): Buffer | null => {
+  const stripped = content.replace(/\s+/g, '');
+  if (!BASE64_RE.test(stripped) || stripped.length % 4 !== 0) {
+    return null;
+  }
+  const buf = Buffer.from(stripped, 'base64');
+  // DOCX is a ZIP archive; all valid ZIPs start with the PK magic bytes.
+  if (buf.length < 4 || buf[0] !== 0x50 || buf[1] !== 0x4b) {
+    return null;
+  }
+  return buf;
+};
+
 const normalizeContentType = (contentType: string): 'html' | 'docx' | 'word-xml' | null => {
   const normalized = contentType.toLowerCase();
   if (normalized === 'xml') {
@@ -36,8 +51,21 @@ const normalizeContentType = (contentType: string): 'html' | 'docx' | 'word-xml'
   return null;
 };
 
+/**
+ * Sanitize a filename for use in a Content-Disposition header.
+ * Strips path separators, CR/LF, and double-quotes that would break or
+ * inject into the header value (RFC 6266 / response-splitting prevention).
+ */
+const sanitizeFilename = (filename: string): string => {
+  const stripped = filename
+    .replace(/[/\\]/g, '_')   // path separators
+    .replace(/["\r\n]/g, '_') // header-breaking characters
+    .trim();
+  return stripped.length > 0 ? stripped : 'generated';
+};
+
 const sendPdfResponse = (res: Response, pdfBuffer: Buffer, filename: string): void => {
-  const safeName = filename.trim().length > 0 ? filename.trim() : 'generated';
+  const safeName = sanitizeFilename(filename);
   const encodedName = encodeURIComponent(`${safeName}.pdf`);
 
   res.setHeader('Content-Type', 'application/pdf');
@@ -88,7 +116,15 @@ router.post('/pdf', async (req: Request<object, object, PdfGenerationRequest>, r
     let pdfBuffer: Buffer;
 
     if (normalizedContentType === 'docx') {
-      const docxBuffer = Buffer.from(content, 'base64');
+      const docxBuffer = decodeBase64Docx(content);
+      if (!docxBuffer) {
+        res.status(400).json({
+          error: 'Invalid request',
+          message: 'Request validation failed',
+          details: ['content must be a valid base64-encoded DOCX (ZIP) file'],
+        });
+        return;
+      }
       pdfBuffer = await officeConverterService.convertToPdf(docxBuffer, 'docx');
     } else if (normalizedContentType === 'word-xml') {
       if (flatOpcConverterService.isFlatOpcXml(content)) {
