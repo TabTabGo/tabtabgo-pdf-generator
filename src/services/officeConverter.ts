@@ -1,15 +1,34 @@
 import { createHmac, randomUUID } from 'node:crypto';
 import { config } from '../config/index.js';
-import { createOfficeFileStore } from './officeFileStore.js';
+import { getOfficeFileStore } from './officeFileStore.js';
 
 export type OfficeInputExtension = 'docx' | 'xml';
 
+/** Typed error thrown by {@link OfficeConverterService.convertToPdf}. */
+export class OfficeConversionError extends Error {
+  constructor(
+    message: string,
+    public readonly code: 'unconfigured' | 'timeout' | 'client-error' | 'server-error',
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'OfficeConversionError';
+  }
+}
+
+/** Truncate a potentially-large upstream response body before including it in an error message. */
+const truncateBody = (text: string, max = 500): string =>
+  text.length > max ? `${text.slice(0, max)}… [truncated]` : text;
+
 export class OfficeConverterService {
-  private readonly officeFileStore = createOfficeFileStore();
+  private readonly officeFileStore = getOfficeFileStore();
 
   async convertToPdf(inputBuffer: Buffer, extension: OfficeInputExtension): Promise<Buffer> {
     if (!config.onlyOfficeDocumentServerUrl || !config.officeDocumentFetchBaseUrl) {
-      throw new Error('OnlyOffice conversion is not configured correctly.');
+      throw new OfficeConversionError(
+        'OnlyOffice conversion is not configured correctly.',
+        'unconfigured',
+      );
     }
 
     const sourceFileType = extension === 'docx' ? 'docx' : 'xml';
@@ -37,18 +56,17 @@ export class OfficeConverterService {
       url: fileUrl,
     };
 
-    let token: string | undefined;
-    if (config.onlyOfficeJwtSecret) {
-      token = this.createOnlyOfficeJwt(payload, config.onlyOfficeJwtSecret);
-      payload.token = token;
-    }
-
+    // Sign the *final* payload before any mutation, then send exclusively via
+    // the Authorization header (not as a body `token` field) to avoid the
+    // circular-dependency that would occur if `token` were part of what was
+    // signed yet also added to the body afterwards.
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
 
-    if (token) {
+    if (config.onlyOfficeJwtSecret) {
+      const token = this.createOnlyOfficeJwt(payload, config.onlyOfficeJwtSecret);
       headers.Authorization = `Bearer ${token}`;
     }
 
@@ -62,7 +80,10 @@ export class OfficeConverterService {
 
       if (!convertResponse.ok) {
         const responseText = await convertResponse.text();
-        throw new Error(`OnlyOffice convert request failed with ${convertResponse.status}: ${responseText}`);
+        throw new OfficeConversionError(
+          `OnlyOffice convert request failed with ${convertResponse.status}: ${truncateBody(responseText)}`,
+          'server-error',
+        );
       }
 
       const convertResult = await convertResponse.json() as {
@@ -72,31 +93,65 @@ export class OfficeConverterService {
       };
 
       if (typeof convertResult.error === 'number' && convertResult.error !== 0) {
-        throw new Error(this.getOnlyOfficeErrorMessage(convertResult.error));
+        const isClientError = [-3, -6, -7].includes(convertResult.error);
+        throw new OfficeConversionError(
+          this.getOnlyOfficeErrorMessage(convertResult.error),
+          isClientError ? 'client-error' : 'server-error',
+        );
       }
 
       if (!convertResult.endConvert || !convertResult.fileUrl) {
-        throw new Error('OnlyOffice conversion did not return a downloadable PDF URL.');
+        throw new OfficeConversionError(
+          'OnlyOffice conversion did not return a downloadable PDF URL.',
+          'server-error',
+        );
       }
 
+      // The fileUrl returned by OnlyOffice is an internal cache link that does
+      // not require authentication; do not forward the JWT to an arbitrary URL.
       const pdfResponse = await fetch(convertResult.fileUrl, {
         method: 'GET',
         signal: AbortSignal.timeout(config.onlyOfficeRequestTimeoutMs),
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
       if (!pdfResponse.ok) {
         const responseText = await pdfResponse.text();
-        throw new Error(`OnlyOffice PDF download failed with ${pdfResponse.status}: ${responseText}`);
+        throw new OfficeConversionError(
+          `OnlyOffice PDF download failed with ${pdfResponse.status}: ${truncateBody(responseText)}`,
+          'server-error',
+        );
       }
 
       const pdfArrayBuffer = await pdfResponse.arrayBuffer();
       return Buffer.from(pdfArrayBuffer);
     } catch (error) {
-      const errorMessage = this.toErrorMessage(error);
-      throw new Error(`Office to PDF conversion failed. ${errorMessage}`.trim());
+      if (error instanceof OfficeConversionError) throw error;
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new OfficeConversionError(
+          'OnlyOffice conversion timed out.',
+          'timeout',
+          { cause: error },
+        );
+      }
+
+      throw new OfficeConversionError(
+        `Office to PDF conversion failed. ${this.toErrorMessage(error)}`.trim(),
+        'server-error',
+        { cause: error },
+      );
     } finally {
-      this.officeFileStore.delete(storedFile.id);
+      if (this.officeFileStore.has(storedFile.id)) {
+        // Entry still present → OnlyOffice never fetched the staged file.
+        // This usually means OFFICE_DOCUMENT_FETCH_BASE_URL is unreachable
+        // from the document server (network policy / misconfiguration).
+        console.error(
+          'OnlyOffice did not fetch the staged conversion file. ' +
+          'Check that OFFICE_DOCUMENT_FETCH_BASE_URL is reachable from the document server.',
+          { fileId: storedFile.id, fetchBaseUrl: config.officeDocumentFetchBaseUrl },
+        );
+        this.officeFileStore.delete(storedFile.id);
+      }
     }
   }
 

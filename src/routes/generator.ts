@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import multer from 'multer';
 import { createPdfGeneratorService } from '../services/pdfGenerator.js';
-import { createOfficeConverterService } from '../services/officeConverter.js';
+import { createOfficeConverterService, OfficeConversionError } from '../services/officeConverter.js';
 import { createFlatOpcConverterService } from '../services/flatOpcConverter.js';
 import type { PDFOptions } from 'puppeteer';
 
@@ -143,16 +143,31 @@ router.post('/pdf', async (req: Request<object, object, PdfGenerationRequest>, r
     res.setHeader('Content-Length', pdfBuffer.length);
     res.send(pdfBuffer);
   } catch (error) {
-    // Log sanitized error details (avoid exposing sensitive information)
+    // Log full error server-side (including cause chain) before responding.
     console.error('PDF generation error:', {
       message: error instanceof Error ? error.message : 'Unknown error',
+      cause: error instanceof Error ? (error.cause instanceof Error ? error.cause.message : error.cause) : undefined,
       timestamp: new Date().toISOString(),
     });
-    
+
+    if (error instanceof OfficeConversionError) {
+      if (error.code === 'timeout') {
+        res.status(504).json({ error: 'Gateway Timeout', message: 'PDF conversion timed out.' });
+        return;
+      }
+      if (error.code === 'unconfigured') {
+        res.status(503).json({ error: 'Service Unavailable', message: 'PDF conversion service is not configured.' });
+        return;
+      }
+      if (error.code === 'client-error') {
+        res.status(422).json({ error: 'Unprocessable Entity', message: error.message });
+        return;
+      }
+    }
+
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to generate PDF',
-      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -213,11 +228,12 @@ router.post(
             throw new Error('options must be a JSON object');
           }
           options = parsedOptions as PDFOptions;
-        } catch {
+        } catch (parseError) {
+          console.warn('Failed to parse PDF options JSON:', parseError instanceof Error ? parseError.message : String(parseError));
           res.status(400).json({
             error: 'Invalid request',
             message: 'Request validation failed',
-            details: ['options must be a valid JSON object string'],
+            details: [`options must be a valid JSON object string: ${parseError instanceof Error ? parseError.message : 'unknown parse error'}`],
           });
           return;
         }
@@ -254,13 +270,28 @@ router.post(
     } catch (error) {
       console.error('PDF generation from upload error:', {
         message: error instanceof Error ? error.message : 'Unknown error',
+        cause: error instanceof Error ? (error.cause instanceof Error ? error.cause.message : error.cause) : undefined,
         timestamp: new Date().toISOString(),
       });
+
+      if (error instanceof OfficeConversionError) {
+        if (error.code === 'timeout') {
+          res.status(504).json({ error: 'Gateway Timeout', message: 'PDF conversion timed out.' });
+          return;
+        }
+        if (error.code === 'unconfigured') {
+          res.status(503).json({ error: 'Service Unavailable', message: 'PDF conversion service is not configured.' });
+          return;
+        }
+        if (error.code === 'client-error') {
+          res.status(422).json({ error: 'Unprocessable Entity', message: error.message });
+          return;
+        }
+      }
 
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to generate PDF from uploaded file',
-        details: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   },

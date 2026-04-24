@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 
 interface OfficeFileStoreEntry {
   id: string;
@@ -14,6 +14,11 @@ interface StoreOfficeFileInput {
   contentType: string;
   buffer: Buffer;
 }
+
+/** Discriminated result returned by {@link OfficeFileStore.get}. */
+export type GetFileResult =
+  | { found: true; entry: OfficeFileStoreEntry }
+  | { found: false; reason: 'not-found' | 'invalid-token' | 'expired' };
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 
@@ -37,27 +42,42 @@ export class OfficeFileStore {
   }
 
   /**
-   * Retrieves and immediately removes the entry (single-use).
-   * This ensures that a token leaked via proxy logs cannot be replayed
-   * once ONLYOFFICE has successfully fetched the file.
+   * Retrieves and removes the entry only on a *successful* (token-valid,
+   * non-expired) lookup — single-use semantics preserved without the race
+   * where a wrong-token probe or ONLYOFFICE retry evicts the real entry.
+   *
+   * Returns a discriminated result so callers can log distinct failure modes
+   * (not-found vs. invalid-token vs. expired) at the appropriate severity.
    */
-  get(id: string, token: string): OfficeFileStoreEntry | null {
+  get(id: string, token: string): GetFileResult {
     this.cleanupExpiredEntries();
 
     const entry = this.entries.get(id);
-
-    // Always delete on lookup to enforce single-use semantics.
-    this.entries.delete(id);
-
-    if (!entry || entry.token !== token) {
-      return null;
+    if (!entry) {
+      return { found: false, reason: 'not-found' };
     }
 
     if (entry.expiresAt <= Date.now()) {
-      return null;
+      return { found: false, reason: 'expired' };
     }
 
-    return entry;
+    // Constant-time comparison to prevent timing attacks on this publicly
+    // reachable endpoint (no apiKeyAuth guard on /v1/internal/…).
+    const storedBuf = Buffer.from(entry.token);
+    const givenBuf = Buffer.from(token);
+    const tokenValid =
+      storedBuf.length === givenBuf.length && timingSafeEqual(storedBuf, givenBuf);
+    if (!tokenValid) {
+      return { found: false, reason: 'invalid-token' };
+    }
+
+    // Delete only after successful validation (single-use on success).
+    this.entries.delete(id);
+    return { found: true, entry };
+  }
+
+  has(id: string): boolean {
+    return this.entries.has(id);
   }
 
   delete(id: string): void {
@@ -76,4 +96,5 @@ export class OfficeFileStore {
 
 const officeFileStoreSingleton = new OfficeFileStore();
 
-export const createOfficeFileStore = (): OfficeFileStore => officeFileStoreSingleton;
+/** Returns the shared {@link OfficeFileStore} singleton. */
+export const getOfficeFileStore = (): OfficeFileStore => officeFileStoreSingleton;

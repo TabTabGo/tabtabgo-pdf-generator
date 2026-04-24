@@ -44,7 +44,10 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=app-build /usr/local/bin/node /usr/local/bin/node
+# Copy the full Node.js installation (binary + npm/npx + ICU data + headers)
+# rather than just the bare `node` binary so that any future base-image change
+# that alters shared-library versions does not silently break the runtime.
+COPY --from=app-build /usr/local /usr/local
 
 WORKDIR /opt/tabtabgo-pdf-generator
 

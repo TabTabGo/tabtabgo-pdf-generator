@@ -47,7 +47,7 @@ docker build -t tabtabgo-pdf-generator .
 # Run the container
 docker run -d \
   -p 3000:3000 \
-  -e API_KEYS=6E1F96A8-0000-0000-0000-C2DB1F6D114D \
+  -e API_KEYS=your-api-key-1,your-api-key-2 \
   -e WEBSITES_PORT=3000 \
   --name pdf-generator \
   tabtabgo-pdf-generator
