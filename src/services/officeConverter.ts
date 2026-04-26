@@ -127,7 +127,7 @@ export class OfficeConverterService {
     } catch (error) {
       if (error instanceof OfficeConversionError) throw error;
 
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && (error.name === 'TimeoutError' || error.name === 'AbortError')) {
         throw new OfficeConversionError(
           'OnlyOffice conversion timed out.',
           'timeout',

@@ -50,7 +50,7 @@ export const config: Config = {
   onlyOfficeJwtSecret,
   onlyOfficeRequestTimeoutMs,
   internalAllowedIps: process.env.INTERNAL_ALLOWED_IPS
-    ? process.env.INTERNAL_ALLOWED_IPS.split(',').map(ip => ip.trim())
+    ? process.env.INTERNAL_ALLOWED_IPS.split(',').map(ip => ip.trim()).filter(Boolean)
     : ['127.0.0.1', '::1', '::ffff:127.0.0.1'],
 };
 
