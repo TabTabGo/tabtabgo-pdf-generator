@@ -1,12 +1,13 @@
 # TabTabGo PDF Generator
 
-A Node.js service that converts HTML to PDF using Puppeteer with API key authentication.
+A Node.js service that converts HTML to PDF using Puppeteer and converts DOCX/Word XML to PDF using ONLYOFFICE Docs.
 
 ## Features
 
 - ✅ Convert HTML to PDF using Puppeteer
 - ✅ Convert Microsoft Word documents (DOCX) to PDF
 - ✅ Convert Word XML documents to PDF
+- ✅ High-fidelity DOCX/Word XML conversion using ONLYOFFICE Docs
 - ✅ RESTful API with versioned `/v1/documents/pdf` endpoint
 - ✅ API key authentication (supports multiple keys)
 - ✅ Dependency injection for better testability
@@ -21,12 +22,14 @@ A Node.js service that converts HTML to PDF using Puppeteer with API key authent
 ### Option 1: Docker (Recommended)
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/TabTabGo/tabtabgo-pdf-generator.git
 cd tabtabgo-pdf-generator
 ```
 
 2. Build and run with Docker Compose:
+
 ```bash
 # Set your API keys (or use default for testing)
 export API_KEYS=your-secret-key-1,your-secret-key-2
@@ -36,41 +39,47 @@ docker-compose up -d
 ```
 
 3. Or build and run with Docker directly:
+
 ```bash
 # Build the image
-# Note: If building in an environment with certificate issues, use:
-# docker build --build-arg NPM_CONFIG_STRICT_SSL=false -t tabtabgo-pdf-generator .
 docker build -t tabtabgo-pdf-generator .
 
 # Run the container
 docker run -d \
   -p 3000:3000 \
-  -e API_KEYS=6E1F96A8-0000-0000-0000-C2DB1F6D114D \
+  -e API_KEYS=your-api-key-1,your-api-key-2 \
+  -e WEBSITES_PORT=3000 \
   --name pdf-generator \
   tabtabgo-pdf-generator
 ```
+
+The Docker image includes the Node API, Puppeteer/Chrome, and ONLYOFFICE Docs in one container. This is designed for hosts such as Azure App Service that run a single container instead of Docker Compose.
 
 The service will be available at `http://localhost:3000`.
 
 ### Option 2: Local Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/TabTabGo/tabtabgo-pdf-generator.git
 cd tabtabgo-pdf-generator
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Configure environment variables:
+
 ```bash
 cp .env.example .env
 ```
 
 Edit `.env` and set your API keys:
+
 ```env
 PORT=3000
 API_KEYS=your-secret-key-1,your-secret-key-2,your-secret-key-3
@@ -78,9 +87,23 @@ API_KEYS=your-secret-key-1,your-secret-key-2,your-secret-key-3
 
 ## Usage
 
+### ONLYOFFICE conversion
+
+DOCX and Word XML conversion always uses ONLYOFFICE Docs.
+
+The Docker image runs ONLYOFFICE inside the same container and defaults to:
+
+```env
+ONLYOFFICE_DOCUMENT_SERVER_URL=http://127.0.0.1
+OFFICE_DOCUMENT_FETCH_BASE_URL=http://127.0.0.1:3000
+```
+
+If you run the Node app outside Docker, point `ONLYOFFICE_DOCUMENT_SERVER_URL` at a reachable ONLYOFFICE Docs instance, and set `OFFICE_DOCUMENT_FETCH_BASE_URL` to a URL that instance can use to fetch staged input files from this API.
+
 ### Start the server
 
 **With Docker:**
+
 ```bash
 # Start
 docker-compose up -d
@@ -93,6 +116,7 @@ docker-compose down
 ```
 
 **Without Docker:**
+
 ```bash
 # Production
 npm start
@@ -106,20 +130,24 @@ The service will start on `http://localhost:3000` (or the port specified in `.en
 ### API Endpoints
 
 #### Health Check
+
 ```bash
 GET /v1/health
 ```
 
 #### Generate PDF
+
 ```bash
 POST /v1/documents/pdf
 ```
 
 **Headers:**
+
 - `Content-Type: application/json`
 - `x-api-key: your-api-key` OR `Authorization: Bearer your-api-key`
 
 **Request Body:**
+
 ```json
 {
   "contentType": "html",
@@ -139,19 +167,30 @@ POST /v1/documents/pdf
 
 The `contentType` field supports:
 
-| Value | Description |
-|-------|-------------|
-| `html` | Raw HTML string |
-| `docx` | Base64-encoded DOCX (Microsoft Word) binary content |
-| `word-xml` | Word XML string (flat OOXML or Word 2003 XML) |
+| Value      | Description                                         |
+| ---------- | --------------------------------------------------- |
+| `html`     | Raw HTML string                                     |
+| `docx`     | Base64-encoded DOCX (Microsoft Word) binary content |
+| `word-xml` | Word XML string (flat OOXML or Word 2003 XML)       |
+
+DOCX and `word-xml` requests use ONLYOFFICE Docs:
+
+| Environment variable             | Meaning                                                                     | Default       |
+| -------------------------------- | --------------------------------------------------------------------------- | ------------- |
+| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                                                 | `http://127.0.0.1` |
+| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL that ONLYOFFICE uses to fetch staged input files from this service | `http://127.0.0.1:3000` |
+| `ONLYOFFICE_JWT_SECRET`          | Shared JWT secret for ONLYOFFICE Docs if enabled                            | unset         |
+| `ONLYOFFICE_REQUEST_TIMEOUT_MS`  | Timeout for ONLYOFFICE conversion and PDF download requests                 | `120000`      |
 
 **Response:**
+
 - Success: Returns PDF file as a binary stream
 - Error: Returns JSON with error details
 
 ### Example with cURL
 
 **HTML to PDF:**
+
 ```bash
 curl -X POST http://localhost:3000/v1/documents/pdf \
   -H "Content-Type: application/json" \
@@ -168,6 +207,7 @@ curl -X POST http://localhost:3000/v1/documents/pdf \
 ```
 
 **DOCX to PDF:**
+
 ```bash
 # First encode the DOCX file to base64
 DOCX_BASE64=$(base64 -w 0 document.docx)
@@ -187,6 +227,7 @@ curl -X POST http://localhost:3000/v1/documents/pdf \
 ```
 
 **Word XML to PDF:**
+
 ```bash
 curl -X POST http://localhost:3000/v1/documents/pdf \
   -H "Content-Type: application/json" \
@@ -204,18 +245,19 @@ curl -X POST http://localhost:3000/v1/documents/pdf \
 ### Example with JavaScript
 
 **HTML to PDF:**
+
 ```javascript
-const response = await fetch('http://localhost:3000/v1/documents/pdf', {
-  method: 'POST',
+const response = await fetch("http://localhost:3000/v1/documents/pdf", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': 'your-api-key',
+    "Content-Type": "application/json",
+    "x-api-key": "your-api-key",
   },
   body: JSON.stringify({
-    contentType: 'html',
-    content: '<html><body><h1>Hello World</h1></body></html>',
+    contentType: "html",
+    content: "<html><body><h1>Hello World</h1></body></html>",
     options: {
-      format: 'A4',
+      format: "A4",
       printBackground: true,
     },
   }),
@@ -226,22 +268,23 @@ const pdfBlob = await response.blob();
 ```
 
 **DOCX to PDF:**
+
 ```javascript
 // Read the DOCX file and convert to base64
-const fs = require('fs');
-const docxBase64 = fs.readFileSync('document.docx').toString('base64');
+const fs = require("fs");
+const docxBase64 = fs.readFileSync("document.docx").toString("base64");
 
-const response = await fetch('http://localhost:3000/v1/documents/pdf', {
-  method: 'POST',
+const response = await fetch("http://localhost:3000/v1/documents/pdf", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': 'your-api-key',
+    "Content-Type": "application/json",
+    "x-api-key": "your-api-key",
   },
   body: JSON.stringify({
-    contentType: 'docx',
+    contentType: "docx",
     content: docxBase64,
     options: {
-      format: 'A4',
+      format: "A4",
       printBackground: true,
     },
   }),
@@ -255,12 +298,16 @@ const pdfBlob = await response.blob();
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | 3000 |
-| `NODE_ENV` | Environment (development/production) | development |
-| `API_KEYS` | Comma-separated list of API keys | - |
-| `PUPPETEER_EXECUTABLE_PATH` | Custom Chromium path (optional) | - |
+| Variable                    | Description                                            | Default                                      |
+| --------------------------- | ------------------------------------------------------ | -------------------------------------------- |
+| `PORT`                      | Server port                                            | 3000                                         |
+| `NODE_ENV`                  | Environment (development/production)                   | development                                  |
+| `API_KEYS`                  | Comma-separated list of API keys                       | -                                            |
+| `PUPPETEER_EXECUTABLE_PATH` | Custom Chromium path (optional)                        | -                                            |
+| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                         | `http://127.0.0.1`                           |
+| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL ONLYOFFICE uses to fetch staged input files | `http://127.0.0.1:3000`                      |
+| `ONLYOFFICE_JWT_SECRET`     | Shared JWT secret for ONLYOFFICE Docs if enabled       | -                                            |
+| `ONLYOFFICE_REQUEST_TIMEOUT_MS` | Timeout for ONLYOFFICE conversion and PDF download requests | 120000                                |
 
 ### PDF Options
 
@@ -287,13 +334,15 @@ See [Puppeteer PDF documentation](https://pptr.dev/api/puppeteer.pdfoptions) for
 The service uses dependency injection for Puppeteer, allowing better control and testability:
 
 ```javascript
-import { createPdfGeneratorService } from './services/pdfGenerator.js';
+import { createPdfGeneratorService } from "./services/pdfGenerator.js";
 
 // Default: uses actual Puppeteer
 const service = createPdfGeneratorService();
 
 // For testing: inject mock Puppeteer
-const mockPuppeteer = { /* mock implementation */ };
+const mockPuppeteer = {
+  /* mock implementation */
+};
 const testService = createPdfGeneratorService(mockPuppeteer);
 ```
 
@@ -344,6 +393,7 @@ docker push your-registry/tabtabgo-pdf-generator:latest
 #### Cloud Deployment
 
 **AWS ECS/Fargate:**
+
 ```bash
 # Authenticate with ECR
 aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin your-account.dkr.ecr.your-region.amazonaws.com
@@ -354,6 +404,7 @@ docker push your-account.dkr.ecr.your-region.amazonaws.com/pdf-generator:latest
 ```
 
 **Google Cloud Run:**
+
 ```bash
 # Build and deploy
 gcloud builds submit --tag gcr.io/your-project/pdf-generator
@@ -361,6 +412,7 @@ gcloud run deploy pdf-generator --image gcr.io/your-project/pdf-generator --plat
 ```
 
 **Azure Container Instances:**
+
 ```bash
 # Create container registry and push
 az acr build --registry your-registry --image pdf-generator:latest .

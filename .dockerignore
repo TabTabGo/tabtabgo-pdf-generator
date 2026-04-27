@@ -38,5 +38,17 @@ Thumbs.db
 
 # Docker files (no need to copy into image)
 Dockerfile
+
+# SDK (not needed for Docker build)
+sdk/
+
+# PM2 config
+ecosystem.config.cjs
+
+# Documentation
+CHANGELOG.md
+EXAMPLES.md
+README.md
+LICENSE
 .dockerignore
 docker-compose.yml
