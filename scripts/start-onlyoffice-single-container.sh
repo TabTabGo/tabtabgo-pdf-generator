@@ -80,6 +80,11 @@ for attempt in $(seq 1 "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}"); do
     exit "$?"
   fi
 
+  if ! kill -0 "${api_pid}" 2>/dev/null; then
+    wait "${api_pid}"
+    exit "$?"
+  fi
+
   if [[ "${attempt}" == "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}" ]]; then
     echo "WARNING: ONLYOFFICE healthcheck did not become ready within ${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}s; proceeding anyway." >&2
     break
