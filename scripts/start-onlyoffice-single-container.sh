@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/opt/tabtabgo-pdf-generator}"
 PORT="${PORT:-3000}"
-ONLYOFFICE_STARTUP_TIMEOUT_SECONDS="${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS:-120}"
+ONLYOFFICE_STARTUP_TIMEOUT_SECONDS="${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS:-300}"
 
 export PORT
 export ONLYOFFICE_DOCUMENT_SERVER_URL="${ONLYOFFICE_DOCUMENT_SERVER_URL:-http://127.0.0.1}"
@@ -55,8 +55,19 @@ cleanup() {
 
 trap cleanup EXIT SIGTERM SIGINT SIGQUIT SIGABRT
 
+# Pre-create the certs directory so ONLYOFFICE's startup find probe doesn't
+# print a harmless "No such file or directory" to stderr.
+mkdir -p /var/www/onlyoffice/Data/certs
+
 /app/ds/run-document-server.sh &
 onlyoffice_pid="$!"
+
+# Start the API immediately so that Kubernetes liveness/readiness probes on
+# port 3000 pass while ONLYOFFICE (which can take several minutes to generate
+# fonts on a cold start) is still initialising.
+cd "${APP_DIR}"
+node dist/index.js &
+api_pid="$!"
 
 for attempt in $(seq 1 "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}"); do
   if curl -fsS "${ONLYOFFICE_DOCUMENT_SERVER_URL}/healthcheck" >/dev/null 2>&1; then
@@ -70,16 +81,12 @@ for attempt in $(seq 1 "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}"); do
   fi
 
   if [[ "${attempt}" == "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}" ]]; then
-    echo "WARNING: ONLYOFFICE healthcheck did not become ready within ${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}s; starting API anyway." >&2
+    echo "WARNING: ONLYOFFICE healthcheck did not become ready within ${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}s; proceeding anyway." >&2
     break
   fi
 
   sleep 1
 done
-
-cd "${APP_DIR}"
-node dist/index.js &
-api_pid="$!"
 
 wait -n "${onlyoffice_pid}" "${api_pid}"
 exit "$?"
