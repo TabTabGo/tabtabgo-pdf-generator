@@ -1,64 +1,112 @@
-name: Deployment for Document PDF services
+name: Build & Release PDF Generator
 
-# When this action will be executed
+# Push to master builds an image, deploys to test, then waits for manual approval before prod.
 on:
-  # Automatically trigger it when detected changes in repo
   push:
-    branches:
-      [ master ]
-
-  # Allow manual trigger
+    branches: [master]
   workflow_dispatch:
 
+env:
+  RESOURCE_GROUP: tabs
+  TEST_CONTAINER_APP: ca-services-generator-test
+  PROD_CONTAINER_APP: ca-services-generator
+
 jobs:
-  build-and-deploy:
+  build:
+    name: Build & push image
     runs-on: ubuntu-latest
     permissions:
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
-
+      id-token: write
+      contents: read
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      full_version: ${{ steps.meta.outputs.full_version }}
     steps:
-      - name: Checkout to the branch
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Get version from package.json
-        id: version
+      - name: Compute image tag
+        id: meta
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          BUILD_NUMBER=${{ github.run_number }}
-          FULL_VERSION="${VERSION}-${BUILD_NUMBER}"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+          FULL_VERSION="${VERSION}-${{ github.run_number }}"
+          IMAGE="${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${FULL_VERSION}"
           echo "full_version=${FULL_VERSION}" >> $GITHUB_OUTPUT
-          echo "Docker image version: ${FULL_VERSION}"
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+          echo "Image: ${IMAGE}"
 
-      - name: Azure Login
+      - name: Azure login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.SERVICES_AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.SERVICES_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.SERVICES_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to Azure Container Registry
+      - name: Login to ACR
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.SERVICES_REGISTRY_URL }}
           username: ${{ secrets.SERVICES_REGISTRY_USERNAME }}
           password: ${{ secrets.SERVICES_REGISTRY_PASSWORD }}
 
-      - name: Build and push container image
+      - name: Build & push image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ steps.version.outputs.full_version }}
+            ${{ steps.meta.outputs.image }}
             ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:latest
 
-      - name: Deploy to Azure Container App
+  deploy-test:
+    name: Deploy to test
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: test
+      url: https://${{ env.TEST_CONTAINER_APP }}.azurecontainerapps.io
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.SERVICES_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.SERVICES_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.SERVICES_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy image to test Container App
         uses: azure/container-apps-deploy-action@v2
         with:
-          containerAppName: ca-services-generator
-          resourceGroup: tabs
-          imageToDeploy: ${{ secrets.SERVICES_REGISTRY_URL }}/services-generator:${{ steps.version.outputs.full_version }}
+          containerAppName: ${{ env.TEST_CONTAINER_APP }}
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          imageToDeploy: ${{ needs.build.outputs.image }}
+
+  deploy-prod:
+    name: Deploy to production
+    needs: [build, deploy-test]
+    runs-on: ubuntu-latest
+    # The `production` GitHub Environment must have Required Reviewers enabled.
+    # That's what creates the manual approval gate between test and prod.
+    environment:
+      name: production
+      url: https://${{ env.PROD_CONTAINER_APP }}.azurecontainerapps.io
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.SERVICES_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.SERVICES_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.SERVICES_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy image to production Container App
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          containerAppName: ${{ env.PROD_CONTAINER_APP }}
+          resourceGroup: ${{ env.RESOURCE_GROUP }}
+          imageToDeploy: ${{ needs.build.outputs.image }}
