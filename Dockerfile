@@ -35,6 +35,7 @@ ENV NODE_ENV=production \
     OFFICE_DOCUMENT_FETCH_BASE_URL=http://127.0.0.1:3001 \
     ONLYOFFICE_REQUEST_TIMEOUT_MS=120000 \
     ALLOW_PRIVATE_IP_ADDRESS=true \
+    INTERNAL_ALLOWED_IPS=127.0.0.1,::1,::ffff:127.0.0.1 \
     PUPPETEER_SKIP_DOWNLOAD=true
 
 # curl is needed for the ONLYOFFICE healthcheck in the startup script.
