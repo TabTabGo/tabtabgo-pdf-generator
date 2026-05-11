@@ -1,6 +1,9 @@
 import { createHmac, randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { config } from '../config/index.js';
 import { getOfficeFileStore } from './officeFileStore.js';
+
+const ONLYOFFICE_READY_FLAG = process.env.ONLYOFFICE_READY_FLAG ?? '/tmp/onlyoffice-ready';
 
 export type OfficeInputExtension = 'docx' | 'xml';
 
@@ -8,7 +11,7 @@ export type OfficeInputExtension = 'docx' | 'xml';
 export class OfficeConversionError extends Error {
   constructor(
     message: string,
-    public readonly code: 'unconfigured' | 'timeout' | 'client-error' | 'server-error',
+    public readonly code: 'unconfigured' | 'not-ready' | 'timeout' | 'client-error' | 'server-error',
     options?: ErrorOptions,
   ) {
     super(message, options);
@@ -28,6 +31,13 @@ export class OfficeConverterService {
       throw new OfficeConversionError(
         'OnlyOffice conversion is not configured correctly.',
         'unconfigured',
+      );
+    }
+
+    if (!existsSync(ONLYOFFICE_READY_FLAG)) {
+      throw new OfficeConversionError(
+        'OnlyOffice Document Server is still initializing. Please retry in a moment.',
+        'not-ready',
       );
     }
 

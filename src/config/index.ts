@@ -4,6 +4,8 @@ dotenv.config();
 
 interface Config {
   port: number;
+  /** Separate internal-only port for the office-files endpoint (avoids Azure Container Apps Envoy interception of the ingress port). */
+  internalPort: number;
   apiKeys: string[];
   nodeEnv: string;
   puppeteerExecutablePath?: string;
@@ -31,6 +33,7 @@ function parsePositiveInt(value: string | undefined, name: string, defaultValue:
 }
 
 const port = parsePositiveInt(process.env.PORT, 'PORT', 3000);
+const internalPort = parsePositiveInt(process.env.INTERNAL_PORT, 'INTERNAL_PORT', 3001);
 const onlyOfficeRequestTimeoutMs = parsePositiveInt(
   process.env.ONLYOFFICE_REQUEST_TIMEOUT_MS,
   'ONLYOFFICE_REQUEST_TIMEOUT_MS',
@@ -42,11 +45,12 @@ const onlyOfficeJwtSecret =
 
 export const config: Config = {
   port,
+  internalPort,
   apiKeys: process.env.API_KEYS ? process.env.API_KEYS.split(',').map(key => key.trim()) : [],
   nodeEnv: process.env.NODE_ENV || 'development',
   puppeteerExecutablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
   onlyOfficeDocumentServerUrl: process.env.ONLYOFFICE_DOCUMENT_SERVER_URL || 'http://127.0.0.1',
-  officeDocumentFetchBaseUrl: process.env.OFFICE_DOCUMENT_FETCH_BASE_URL || `http://127.0.0.1:${port}`,
+  officeDocumentFetchBaseUrl: process.env.OFFICE_DOCUMENT_FETCH_BASE_URL || `http://127.0.0.1:${internalPort}`,
   onlyOfficeJwtSecret,
   onlyOfficeRequestTimeoutMs,
   internalAllowedIps: process.env.INTERNAL_ALLOWED_IPS
