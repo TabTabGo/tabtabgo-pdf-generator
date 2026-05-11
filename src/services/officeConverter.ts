@@ -3,7 +3,22 @@ import { existsSync } from 'node:fs';
 import { config } from '../config/index.js';
 import { getOfficeFileStore } from './officeFileStore.js';
 
-const ONLYOFFICE_READY_FLAG = process.env.ONLYOFFICE_READY_FLAG ?? '/tmp/onlyoffice-ready';
+// Only enforce a readiness-flag check when ONLYOFFICE_READY_FLAG is explicitly
+// set (i.e. the embedded-ONLYOFFICE image startup script is in use). When the
+// variable is absent the check is skipped so external / flag-less deployments
+// are not stuck returning 503 forever.
+const ONLYOFFICE_READY_FLAG_PATH: string | undefined = process.env.ONLYOFFICE_READY_FLAG;
+
+// Cache readiness in memory: once the flag file is observed, avoid repeating
+// the synchronous existsSync() on every conversion request.
+let onlyOfficeReadyCached = false;
+
+function isOnlyOfficeReady(): boolean {
+  if (ONLYOFFICE_READY_FLAG_PATH === undefined) return true;
+  if (onlyOfficeReadyCached) return true;
+  onlyOfficeReadyCached = existsSync(ONLYOFFICE_READY_FLAG_PATH);
+  return onlyOfficeReadyCached;
+}
 
 export type OfficeInputExtension = 'docx' | 'xml';
 
@@ -34,7 +49,7 @@ export class OfficeConverterService {
       );
     }
 
-    if (!existsSync(ONLYOFFICE_READY_FLAG)) {
+    if (!isOnlyOfficeReady()) {
       throw new OfficeConversionError(
         'OnlyOffice Document Server is still initializing. Please retry in a moment.',
         'not-ready',

@@ -13,6 +13,9 @@ export ONLYOFFICE_DOCUMENT_SERVER_URL="${ONLYOFFICE_DOCUMENT_SERVER_URL:-http://
 export OFFICE_DOCUMENT_FETCH_BASE_URL="${OFFICE_DOCUMENT_FETCH_BASE_URL:-http://127.0.0.1:${INTERNAL_PORT}}"
 export ONLYOFFICE_REQUEST_TIMEOUT_MS="${ONLYOFFICE_REQUEST_TIMEOUT_MS:-120000}"
 export ALLOW_PRIVATE_IP_ADDRESS="${ALLOW_PRIVATE_IP_ADDRESS:-true}"
+# Configurable path for the readiness flag; exported so the API picks up the
+# same value and both sides stay in sync even when overridden.
+export ONLYOFFICE_READY_FLAG="${ONLYOFFICE_READY_FLAG:-/tmp/onlyoffice-ready}"
 
 # Keep JWT disabled by default for the self-contained image, because otherwise
 # ONLYOFFICE generates a random secret that the API cannot know.
@@ -62,6 +65,10 @@ trap cleanup EXIT SIGTERM SIGINT SIGQUIT SIGABRT
 # print a harmless "No such file or directory" to stderr.
 mkdir -p /var/www/onlyoffice/Data/certs
 
+# Clear any stale readiness flag from a previous run so an old file can't
+# incorrectly mark the service ready before ONLYOFFICE has actually started.
+rm -f "${ONLYOFFICE_READY_FLAG}"
+
 /app/ds/run-document-server.sh &
 onlyoffice_pid="$!"
 
@@ -75,7 +82,7 @@ api_pid="$!"
 for attempt in $(seq 1 "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}"); do
   if curl -fsS "${ONLYOFFICE_DOCUMENT_SERVER_URL}/healthcheck" >/dev/null 2>&1; then
     echo "ONLYOFFICE Document Server is ready."
-    touch /tmp/onlyoffice-ready
+    touch "${ONLYOFFICE_READY_FLAG}"
     break
   fi
 
@@ -100,7 +107,7 @@ for attempt in $(seq 1 "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}"); do
         sleep 5
         if curl -fsS "${ONLYOFFICE_DOCUMENT_SERVER_URL}/healthcheck" >/dev/null 2>&1; then
           echo "ONLYOFFICE Document Server became ready (background probe)."
-          touch /tmp/onlyoffice-ready
+          touch "${ONLYOFFICE_READY_FLAG}"
           break
         fi
       done

@@ -8,7 +8,14 @@ import generatorRoutes from './routes/generator.js';
 import openApiSpec from './openapi.js';
 import { getOfficeFileStore } from './services/officeFileStore.js';
 
-const ONLYOFFICE_READY_FLAG = process.env.ONLYOFFICE_READY_FLAG ?? '/tmp/onlyoffice-ready';
+// Only gate readiness on the flag file when ONLYOFFICE_READY_FLAG is
+// explicitly set (embedded-ONLYOFFICE image). Deployments that use an
+// external ONLYOFFICE instance or only render HTML→PDF will report ready
+// immediately so platform probes (e.g. ACA readiness probe) are not blocked.
+const ONLYOFFICE_READY_FLAG_PATH: string | undefined = process.env.ONLYOFFICE_READY_FLAG;
+// Cached once the flag file is first observed so repeated readiness probes
+// don't keep hitting the filesystem.
+let onlyOfficeReadyCached = false;
 
 const app = express();
 const officeFileStore = getOfficeFileStore();
@@ -30,8 +37,14 @@ app.get('/v1/health', (_req: Request, res: Response) => {
 // Use this as the ACA readiness probe so Azure holds traffic until the
 // document server has finished its cold-start initialisation.
 app.get('/v1/ready', (_req: Request, res: Response) => {
-  const onlyOfficeReady = existsSync(ONLYOFFICE_READY_FLAG);
+  if (ONLYOFFICE_READY_FLAG_PATH === undefined) {
+    // Flag-based check not configured → readiness is not gated on ONLYOFFICE.
+    res.json({ status: 'ready', onlyOffice: null });
+    return;
+  }
+  const onlyOfficeReady = onlyOfficeReadyCached || existsSync(ONLYOFFICE_READY_FLAG_PATH);
   if (onlyOfficeReady) {
+    onlyOfficeReadyCached = true;
     res.json({ status: 'ready', onlyOffice: true });
   } else {
     res.status(503).json({ status: 'not-ready', onlyOffice: false, reason: 'OnlyOffice Document Server is still initializing' });
