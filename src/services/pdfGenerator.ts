@@ -53,7 +53,13 @@ export class PdfGeneratorService {
       // Launch browser with custom executable path if configured
       const launchOptions: LaunchOptions = {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',  // Required in containers where /dev/shm is small (e.g. Azure Container Apps)
+          '--disable-gpu',
+          '--no-zygote',
+        ],
       };
 
       if (config.puppeteerExecutablePath) {

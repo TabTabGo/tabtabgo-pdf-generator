@@ -159,6 +159,10 @@ router.post('/pdf', async (req: Request<object, object, PdfGenerationRequest>, r
         res.status(503).json({ error: 'Service Unavailable', message: 'PDF conversion service is not configured.' });
         return;
       }
+      if (error.code === 'not-ready') {
+        res.status(503).json({ error: 'Service Unavailable', message: error.message });
+        return;
+      }
       if (error.code === 'client-error') {
         res.status(422).json({ error: 'Unprocessable Entity', message: error.message });
         return;
@@ -281,6 +285,10 @@ router.post(
         }
         if (error.code === 'unconfigured') {
           res.status(503).json({ error: 'Service Unavailable', message: 'PDF conversion service is not configured.' });
+          return;
+        }
+        if (error.code === 'not-ready') {
+          res.status(503).json({ error: 'Service Unavailable', message: error.message });
           return;
         }
         if (error.code === 'client-error') {

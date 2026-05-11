@@ -95,7 +95,7 @@ The Docker image runs ONLYOFFICE inside the same container and defaults to:
 
 ```env
 ONLYOFFICE_DOCUMENT_SERVER_URL=http://127.0.0.1
-OFFICE_DOCUMENT_FETCH_BASE_URL=http://127.0.0.1:3000
+OFFICE_DOCUMENT_FETCH_BASE_URL=http://127.0.0.1:3001
 ```
 
 If you run the Node app outside Docker, point `ONLYOFFICE_DOCUMENT_SERVER_URL` at a reachable ONLYOFFICE Docs instance, and set `OFFICE_DOCUMENT_FETCH_BASE_URL` to a URL that instance can use to fetch staged input files from this API.
@@ -175,12 +175,15 @@ The `contentType` field supports:
 
 DOCX and `word-xml` requests use ONLYOFFICE Docs:
 
-| Environment variable             | Meaning                                                                     | Default       |
-| -------------------------------- | --------------------------------------------------------------------------- | ------------- |
-| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                                                 | `http://127.0.0.1` |
-| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL that ONLYOFFICE uses to fetch staged input files from this service | `http://127.0.0.1:3000` |
-| `ONLYOFFICE_JWT_SECRET`          | Shared JWT secret for ONLYOFFICE Docs if enabled                            | unset         |
-| `ONLYOFFICE_REQUEST_TIMEOUT_MS`  | Timeout for ONLYOFFICE conversion and PDF download requests                 | `120000`      |
+| Environment variable             | Meaning                                                                                           | Default                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------ |
+| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                                                                       | `http://127.0.0.1`       |
+| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL that ONLYOFFICE uses to fetch staged input files from this service                       | `http://127.0.0.1:3001`  |
+| `INTERNAL_PORT`                  | Port for the internal file-serving listener (used by `OFFICE_DOCUMENT_FETCH_BASE_URL` default)    | `3001`                   |
+| `INTERNAL_ALLOWED_IPS`           | Comma-separated IPs allowed to reach the internal office-files endpoint                           | `127.0.0.1,::1`          |
+| `ONLYOFFICE_JWT_SECRET`          | Shared JWT secret for ONLYOFFICE Docs if enabled                                                  | unset                    |
+| `ONLYOFFICE_REQUEST_TIMEOUT_MS`  | Timeout for ONLYOFFICE conversion and PDF download requests                                       | `120000`                 |
+| `ONLYOFFICE_READY_FLAG`          | Path to the readiness flag file written by the startup script; enables flag-gated readiness check | unset (check disabled)   |
 
 **Response:**
 
@@ -298,16 +301,19 @@ const pdfBlob = await response.blob();
 
 ### Environment Variables
 
-| Variable                    | Description                                            | Default                                      |
-| --------------------------- | ------------------------------------------------------ | -------------------------------------------- |
-| `PORT`                      | Server port                                            | 3000                                         |
-| `NODE_ENV`                  | Environment (development/production)                   | development                                  |
-| `API_KEYS`                  | Comma-separated list of API keys                       | -                                            |
-| `PUPPETEER_EXECUTABLE_PATH` | Custom Chromium path (optional)                        | -                                            |
-| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                         | `http://127.0.0.1`                           |
-| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL ONLYOFFICE uses to fetch staged input files | `http://127.0.0.1:3000`                      |
-| `ONLYOFFICE_JWT_SECRET`     | Shared JWT secret for ONLYOFFICE Docs if enabled       | -                                            |
-| `ONLYOFFICE_REQUEST_TIMEOUT_MS` | Timeout for ONLYOFFICE conversion and PDF download requests | 120000                                |
+| Variable                         | Description                                                                                       | Default                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `PORT`                           | Server port                                                                                       | 3000                                         |
+| `NODE_ENV`                       | Environment (development/production)                                                              | development                                  |
+| `API_KEYS`                       | Comma-separated list of API keys                                                                  | -                                            |
+| `PUPPETEER_EXECUTABLE_PATH`      | Custom Chromium path (optional)                                                                   | -                                            |
+| `ONLYOFFICE_DOCUMENT_SERVER_URL` | Base URL of ONLYOFFICE Docs                                                                       | `http://127.0.0.1`                           |
+| `OFFICE_DOCUMENT_FETCH_BASE_URL` | Base URL ONLYOFFICE uses to fetch staged input files                                              | `http://127.0.0.1:3001`                      |
+| `INTERNAL_PORT`                  | Port for the internal file-serving listener (used by `OFFICE_DOCUMENT_FETCH_BASE_URL` default)    | `3001`                                       |
+| `INTERNAL_ALLOWED_IPS`           | Comma-separated IPs allowed to reach the internal office-files endpoint                           | `127.0.0.1,::1`                              |
+| `ONLYOFFICE_JWT_SECRET`          | Shared JWT secret for ONLYOFFICE Docs if enabled                                                  | -                                            |
+| `ONLYOFFICE_REQUEST_TIMEOUT_MS`  | Timeout for ONLYOFFICE conversion and PDF download requests                                       | 120000                                       |
+| `ONLYOFFICE_READY_FLAG`          | Path to the readiness flag file written by the startup script; enables flag-gated readiness check | unset (check disabled)                       |
 
 ### PDF Options
 
@@ -410,6 +416,15 @@ docker push your-account.dkr.ecr.your-region.amazonaws.com/pdf-generator:latest
 gcloud builds submit --tag gcr.io/your-project/pdf-generator
 gcloud run deploy pdf-generator --image gcr.io/your-project/pdf-generator --platform managed
 ```
+
+**Azure Container Apps:**
+
+The GitHub Actions workflow only builds, pushes, and deploys the image. Configure each Azure Container App environment manually:
+
+- Set ingress to external, target port `3000`.
+- Set `API_KEYS` as an environment variable or secret reference.
+- Keep the image defaults for `INTERNAL_PORT`, `OFFICE_DOCUMENT_FETCH_BASE_URL`, `ONLYOFFICE_DOCUMENT_SERVER_URL`, and `INTERNAL_ALLOWED_IPS` unless you are intentionally overriding them.
+- Leave `ONLYOFFICE_JWT_SECRET` unset unless JWT is explicitly configured for ONLYOFFICE in that environment.
 
 **Azure Container Instances:**
 

@@ -3,13 +3,19 @@ set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/opt/tabtabgo-pdf-generator}"
 PORT="${PORT:-3000}"
-ONLYOFFICE_STARTUP_TIMEOUT_SECONDS="${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS:-300}"
+ONLYOFFICE_STARTUP_TIMEOUT_SECONDS="${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS:-600}"
 
 export PORT
+export INTERNAL_PORT="${INTERNAL_PORT:-3001}"
 export ONLYOFFICE_DOCUMENT_SERVER_URL="${ONLYOFFICE_DOCUMENT_SERVER_URL:-http://127.0.0.1}"
-export OFFICE_DOCUMENT_FETCH_BASE_URL="${OFFICE_DOCUMENT_FETCH_BASE_URL:-http://127.0.0.1:${PORT}}"
+# Default to the internal port so ONLYOFFICE fetches staged files from the
+# loopback server that is NOT intercepted by Azure Container Apps' Envoy proxy.
+export OFFICE_DOCUMENT_FETCH_BASE_URL="${OFFICE_DOCUMENT_FETCH_BASE_URL:-http://127.0.0.1:${INTERNAL_PORT}}"
 export ONLYOFFICE_REQUEST_TIMEOUT_MS="${ONLYOFFICE_REQUEST_TIMEOUT_MS:-120000}"
 export ALLOW_PRIVATE_IP_ADDRESS="${ALLOW_PRIVATE_IP_ADDRESS:-true}"
+# Configurable path for the readiness flag; exported so the API picks up the
+# same value and both sides stay in sync even when overridden.
+export ONLYOFFICE_READY_FLAG="${ONLYOFFICE_READY_FLAG:-/tmp/onlyoffice-ready}"
 
 # Keep JWT disabled by default for the self-contained image, because otherwise
 # ONLYOFFICE generates a random secret that the API cannot know.
@@ -59,6 +65,10 @@ trap cleanup EXIT SIGTERM SIGINT SIGQUIT SIGABRT
 # print a harmless "No such file or directory" to stderr.
 mkdir -p /var/www/onlyoffice/Data/certs
 
+# Clear any stale readiness flag from a previous run so an old file can't
+# incorrectly mark the service ready before ONLYOFFICE has actually started.
+rm -f "${ONLYOFFICE_READY_FLAG}"
+
 /app/ds/run-document-server.sh &
 onlyoffice_pid="$!"
 
@@ -72,6 +82,7 @@ api_pid="$!"
 for attempt in $(seq 1 "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}"); do
   if curl -fsS "${ONLYOFFICE_DOCUMENT_SERVER_URL}/healthcheck" >/dev/null 2>&1; then
     echo "ONLYOFFICE Document Server is ready."
+    touch "${ONLYOFFICE_READY_FLAG}"
     break
   fi
 
@@ -86,7 +97,21 @@ for attempt in $(seq 1 "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}"); do
   fi
 
   if [[ "${attempt}" == "${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}" ]]; then
-    echo "WARNING: ONLYOFFICE healthcheck did not become ready within ${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}s; proceeding anyway." >&2
+    echo "WARNING: ONLYOFFICE healthcheck did not become ready within ${ONLYOFFICE_STARTUP_TIMEOUT_SECONDS}s. Starting background readiness probe." >&2
+    # Keep probing in the background so the flag is eventually written if
+    # ONLYOFFICE becomes healthy after the initial timeout window. Without
+    # this, /tmp/onlyoffice-ready would never be created and the API would
+    # return 503 forever for conversion requests.
+    (
+      while kill -0 "${onlyoffice_pid}" 2>/dev/null; do
+        sleep 5
+        if curl -fsS "${ONLYOFFICE_DOCUMENT_SERVER_URL}/healthcheck" >/dev/null 2>&1; then
+          echo "ONLYOFFICE Document Server became ready (background probe)."
+          touch "${ONLYOFFICE_READY_FLAG}"
+          break
+        fi
+      done
+    ) &
     break
   fi
 
