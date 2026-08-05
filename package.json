@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
+    "debug:inspect": "node --inspect=9229 ./node_modules/tsx/dist/cli.mjs watch src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "version:major": "node scripts/bump-version.mjs major",
     "version:minor": "node scripts/bump-version.mjs minor",
@@ -19,12 +20,14 @@
   "dependencies": {
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "mammoth": "^1.12.0",
+    "jszip": "^3.10.1",
+    "multer": "^2.1.1",
     "puppeteer": "^24.36.0",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
     "@types/node": "^25.0.10",
     "@types/swagger-ui-express": "^4.1.8",
     "tsx": "^4.21.0",
